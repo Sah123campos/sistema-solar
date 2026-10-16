@@ -1,0 +1,1747 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>O Sistema Solar — Uma jornada de 4,5 bilhões de anos</title>
+<meta name="description" content="Uma viagem cinematográfica e interativa pelos planetas do Sistema Solar, em 3D e em tempo real.">
+<meta name="theme-color" content="#05060a">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><radialGradient id='p' cx='38%' cy='34%' r='70%'><stop offset='0' stop-color='%23fff1c9'/><stop offset='.55' stop-color='%23f0b45c'/><stop offset='1' stop-color='%238a4a1c'/></radialGradient><clipPath id='f'><rect x='0' y='33' width='64' height='31'/></clipPath></defs><rect width='64' height='64' rx='14' fill='%2305060a'/><g transform='rotate(-20 32 33)'><ellipse cx='32' cy='33' rx='27' ry='8' fill='none' stroke='%23e9cf8f' stroke-width='3' stroke-opacity='.45'/></g><circle cx='32' cy='32' r='14' fill='url(%23p)'/><g transform='rotate(-20 32 33)'><ellipse cx='32' cy='33' rx='27' ry='8' fill='none' stroke='%23e9cf8f' stroke-width='3' clip-path='url(%23f)'/></g></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Space+Grotesk:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#05060a;
+  --ink:#eef1f5;
+  --ink-2:rgba(238,241,245,.64);
+  --ink-3:rgba(238,241,245,.38);
+  --line:rgba(238,241,245,.14);
+  --accent:#cfd8ff;
+  --serif:'Cormorant Garamond','Times New Roman',serif;
+  --sans:'Space Grotesk',system-ui,-apple-system,sans-serif;
+  --pad:clamp(16px,4vw,64px);
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+html{background:var(--bg);-webkit-text-size-adjust:100%}
+html.lenis,html.lenis body{height:auto}
+.lenis.lenis-smooth{scroll-behavior:auto!important}
+.lenis.lenis-stopped{overflow:hidden}
+html.is-locked{overflow:hidden}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-weight:300;overflow-x:clip;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+::selection{background:var(--accent);color:var(--bg)}
+a,button{color:inherit;font:inherit;background:none;border:0;cursor:pointer;text-decoration:none}
+em{font-style:italic}
+@media (hover:hover) and (pointer:fine){
+  body.has-cursor,body.has-cursor a,body.has-cursor button{cursor:none}
+}
+
+/* ---------- Camadas fixas ---------- */
+#webgl{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;display:block;outline:none}
+.vignette{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(130% 95% at 50% 42%,transparent 50%,rgba(5,6,10,.5) 82%,rgba(5,6,10,.88) 100%)}
+.grain{position:fixed;inset:-60%;z-index:70;pointer-events:none;opacity:.055;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  animation:grain .9s steps(6) infinite}
+@keyframes grain{
+  0%{transform:translate(0,0)}20%{transform:translate(-6%,4%)}40%{transform:translate(5%,-7%)}
+  60%{transform:translate(-3%,8%)}80%{transform:translate(7%,2%)}100%{transform:translate(0,0)}}
+
+/* ---------- Cursor ---------- */
+.cursor,.cursor-dot{position:fixed;left:0;top:0;z-index:90;pointer-events:none;border-radius:50%;opacity:0;transition:opacity .4s}
+.has-cursor .cursor,.has-cursor .cursor-dot{opacity:1}
+.cursor{width:38px;height:38px;margin:-19px 0 0 -19px;border:1px solid var(--accent);
+  transition:width .5s var(--ease),height .5s var(--ease),margin .5s var(--ease),background-color .4s,opacity .4s}
+.cursor.is-hover{width:84px;height:84px;margin:-42px 0 0 -42px;background-color:rgba(238,241,245,.07)}
+.cursor-dot{width:4px;height:4px;margin:-2px 0 0 -2px;background:var(--ink)}
+@media (pointer:coarse){.cursor,.cursor-dot{display:none}}
+
+/* ---------- Loader ---------- */
+.loader{position:fixed;inset:0;z-index:80;background:var(--bg);display:flex;flex-direction:column;justify-content:space-between;
+  padding:calc(var(--pad) + 8px) var(--pad);clip-path:inset(0 0 0 0)}
+.loader-top,.loader-bottom{display:flex;justify-content:space-between;align-items:flex-end;font-size:10px;letter-spacing:.38em;text-transform:uppercase;color:var(--ink-2)}
+.loader-count{font-family:var(--serif);font-weight:300;font-size:clamp(110px,24vw,360px);line-height:.78;letter-spacing:-.03em;color:var(--ink);font-variant-numeric:tabular-nums}
+.loader-count small{font-size:.22em;letter-spacing:0;vertical-align:top;margin-left:.1em;color:var(--ink-3)}
+.loader-bar{position:absolute;left:var(--pad);right:var(--pad);top:50%;height:1px;background:var(--line);overflow:hidden}
+.loader-bar i{position:absolute;inset:0;background:var(--ink);transform-origin:left;transform:scaleX(0)}
+.loader-error{display:none;max-width:40ch;font-size:13px;line-height:1.6;letter-spacing:.02em;text-transform:none;color:var(--ink)}
+.loader.failed .loader-error{display:block}
+
+/* ---------- Navegação ---------- */
+.nav{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;
+  padding:22px var(--pad) 20px;font-size:10px;letter-spacing:.34em;text-transform:uppercase}
+.logo{display:flex;align-items:center;gap:12px}
+.logo svg{width:26px;height:26px;overflow:visible}
+.logo .l-sun{fill:var(--accent);transition:fill .6s}
+.logo .l-orbit{fill:none;stroke:var(--ink-3);stroke-width:1}
+.logo .l-planet{fill:var(--ink);transform-origin:16px 16px;animation:orbit 9s linear infinite}
+@keyframes orbit{to{transform:rotate(360deg)}}
+.logo b{font-weight:500}
+.logo span em{display:block;font-style:normal;color:var(--ink-3);letter-spacing:.3em;margin-top:4px;font-size:9px}
+.nav-now{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px;color:var(--ink-2)}
+.nav-now .now-idx{color:var(--accent);font-variant-numeric:tabular-nums}
+.nav-now .now-sep{width:28px;height:1px;background:var(--line)}
+.menu-btn{display:flex;align-items:center;gap:14px;letter-spacing:.34em;text-transform:uppercase;font-size:10px}
+.menu-btn .mb-icon{display:grid;gap:5px;width:22px}
+.menu-btn .mb-icon i{display:block;height:1px;background:var(--ink);transition:transform .6s var(--ease)}
+.menu-btn[aria-expanded="true"] .mb-icon i:first-child{transform:translateY(3px) rotate(45deg)}
+.menu-btn[aria-expanded="true"] .mb-icon i:last-child{transform:translateY(-3px) rotate(-45deg)}
+.progress{position:absolute;left:var(--pad);right:var(--pad);bottom:0;height:1px;background:var(--line)}
+.progress-fill{position:absolute;inset:0;background:var(--accent);transform-origin:left;transform:scaleX(0)}
+.progress .tick{position:absolute;top:-3px;width:1px;height:7px;background:var(--ink-3)}
+.progress .tick.on{background:var(--accent)}
+
+/* ---------- Menu ---------- */
+.menu{position:fixed;inset:0;z-index:45;background:rgba(5,6,10,.94);display:flex;align-items:center;
+  padding:110px var(--pad) var(--pad);clip-path:inset(0 0 100% 0);transition:clip-path 1s var(--ease);visibility:hidden}
+.menu.open{clip-path:inset(0 0 0 0);visibility:visible}
+.menu ol{list-style:none;width:100%;columns:2;column-gap:6vw}
+.menu li{break-inside:avoid;border-top:1px solid var(--line)}
+.menu a{display:flex;align-items:baseline;gap:22px;padding:1.4vh 0;font-family:var(--serif);font-weight:300;
+  font-size:clamp(28px,4.2vh,52px);line-height:1.1;transition:color .4s,padding .6s var(--ease)}
+.menu a small{font-family:var(--sans);font-size:10px;letter-spacing:.3em;color:var(--ink-3);min-width:24px}
+.menu a:hover{color:var(--accent);padding-left:14px}
+
+/* ---------- Estrutura das seções ---------- */
+main{position:relative;z-index:2}
+.sec{position:relative;height:150vh}
+.sec.intro{height:150vh}
+.sec.scale{height:190vh}
+.sec.outro{height:230vh}
+.stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden}
+.inner{position:absolute;inset:0;padding:110px var(--pad) clamp(24px,5vh,56px)}
+
+.hud{display:flex;align-items:center;gap:16px;font-size:10px;letter-spacing:.34em;text-transform:uppercase;color:var(--ink-2)}
+.hud .idx{color:var(--accent);font-variant-numeric:tabular-nums}
+.hud .rule{flex:0 0 56px;height:1px;background:var(--accent)}
+.hud .hud-extra{margin-left:auto;color:var(--ink-3)}
+
+/* máscara de letras */
+.ch{display:inline-block;overflow:hidden;vertical-align:top;padding:.14em .04em .02em;margin:-.14em -.04em -.02em}
+.ch>span{display:inline-block;will-change:transform}
+.ch.sp{width:.24em}
+
+/* ---------- Abertura ---------- */
+.intro .inner{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.hero-title{font-family:var(--serif);font-weight:300;font-size:clamp(64px,13.2vw,250px);line-height:.84;letter-spacing:-.015em;text-transform:uppercase}
+.hero-title .row{display:block;white-space:nowrap}
+.hero-title .row:last-child{font-style:italic;font-weight:300;padding-left:.9em}
+.hero-sub{margin-top:4.5vh;font-size:11px;letter-spacing:.52em;text-transform:uppercase;color:var(--ink-2);padding-left:.52em}
+.hero-sub b{color:var(--accent);font-weight:400}
+.corner{position:absolute;font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-3);line-height:1.9}
+.corner.tl{left:var(--pad);top:120px}
+.corner.tr{right:var(--pad);top:120px;text-align:right}
+.corner.bl{left:var(--pad);bottom:clamp(24px,5vh,56px)}
+.corner.br{right:var(--pad);bottom:clamp(24px,5vh,56px);text-align:right}
+.scroll-hint{position:absolute;left:0;right:0;margin:0 auto;width:max-content;bottom:clamp(24px,5vh,56px);display:flex;flex-direction:column;align-items:center;gap:16px;
+  font-size:9px;letter-spacing:.42em;text-transform:uppercase;color:var(--ink-2);padding-left:.42em}
+.scroll-hint i{position:relative;width:1px;height:60px;background:var(--line);overflow:hidden}
+.scroll-hint i::after{content:"";position:absolute;left:0;top:0;width:1px;height:40%;background:var(--ink);animation:drip 2.4s var(--ease) infinite}
+@keyframes drip{0%{transform:translateY(-100%)}100%{transform:translateY(260%)}}
+
+/* ---------- Seções de corpos celestes ---------- */
+.body .inner{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,360px);grid-template-rows:auto 1fr auto;column-gap:4vw}
+.body .hud{grid-column:1/-1;grid-row:1}
+.fact{grid-column:1;grid-row:2;align-self:center;max-width:24ch;font-family:var(--serif);font-weight:300;font-style:italic;
+  font-size:clamp(20px,1.9vw,32px);line-height:1.22;color:var(--ink)}
+.fact em{font-style:normal;color:var(--accent)}
+.fact .label{display:flex;align-items:center;gap:12px;font-family:var(--sans);font-style:normal;font-size:9px;letter-spacing:.36em;text-transform:uppercase;color:var(--ink-3);margin-bottom:18px}
+.fact .label::before{content:"";width:18px;height:1px;background:var(--accent)}
+.sheet{grid-column:2;grid-row:2;align-self:center;position:relative;border:1px solid var(--line);background:rgba(5,6,10,.42)}
+.sheet::before,.sheet::after{content:"";position:absolute;width:12px;height:12px;border:1px solid var(--accent)}
+.sheet::before{left:-1px;top:-1px;border-right:0;border-bottom:0}
+.sheet::after{right:-1px;bottom:-1px;border-left:0;border-top:0}
+.sheet h3{display:flex;justify-content:space-between;padding:16px 18px;font-weight:400;font-size:9px;letter-spacing:.34em;text-transform:uppercase;color:var(--ink-2);border-bottom:1px solid var(--line)}
+.sheet h3 span:last-child{color:var(--accent)}
+.sheet dl{display:grid;grid-template-columns:1fr 1fr}
+.cell{padding:16px 18px 15px;border-bottom:1px solid var(--line)}
+.cell:nth-child(odd){border-right:1px solid var(--line)}
+.cell:nth-last-child(-n+2){border-bottom:0}
+.cell dt{font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-3);margin-bottom:10px;white-space:nowrap}
+.cell dd{font-family:var(--sans);font-weight:300;font-size:clamp(20px,1.7vw,27px);line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.01em;white-space:nowrap}
+.cell dd.unit{margin-top:7px;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);line-height:1.2;white-space:normal}
+.ptitle{grid-column:1/-1;grid-row:3;font-family:var(--serif);font-weight:300;font-size:clamp(76px,13vw,250px);line-height:.82;letter-spacing:-.025em;margin-left:-.05em;white-space:nowrap}
+
+/* ---------- Escala ---------- */
+.scale .stage{background:radial-gradient(120% 80% at 50% 55%,rgba(5,6,10,.72),rgba(5,6,10,.35))}
+.scale .inner{--J:16vw}
+.stitle{margin-top:3vh;font-family:var(--serif);font-weight:300;font-size:clamp(48px,7vw,120px);line-height:.9;letter-spacing:-.02em}
+.stitle em{color:var(--accent)}
+.slead{margin-top:2vh;max-width:46ch;font-size:13px;line-height:1.7;color:var(--ink-2)}
+.sunarc{position:absolute;top:58%;width:calc(var(--J) * 9.74);aspect-ratio:1;left:calc(var(--J) * -9.74 + 7vw);transform:translateY(-50%);border-radius:50%;
+  background:radial-gradient(circle at 50% 50%,#fff3d1 0%,#ffd27a 48%,#ff9a2e 80%,#d9530f 96%,#8a2a00 100%);
+  box-shadow:0 0 60px 10px rgba(255,140,40,.45),0 0 180px 40px rgba(255,110,20,.18)}
+.sunarc span{position:absolute;right:calc(-1 * var(--pad));top:50%}
+.sun-label{position:absolute;left:var(--pad);bottom:clamp(24px,5vh,56px);font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-2)}
+.sun-label b{color:#ffb54a;font-weight:400}
+.srow{position:absolute;left:12vw;right:var(--pad);top:58%;transform:translateY(-50%);display:flex;align-items:center;justify-content:space-between}
+.sitem{position:relative;display:flex;align-items:center;justify-content:center;min-width:6vw}
+.sitem.saturno{min-width:calc(var(--J) * 1.55)}
+.orbwrap{position:relative;display:flex;align-items:center;justify-content:center}
+.orb{position:relative;width:calc(var(--J) * var(--d));min-width:3px;aspect-ratio:1;border-radius:50%}
+.orb::after{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 32% 30%,rgba(255,255,255,.18),transparent 45%,rgba(0,0,0,.55) 100%)}
+.o-mercurio{background:radial-gradient(circle at 40% 40%,#b9b3ab,#6e6964 70%,#3a3734)}
+.o-venus{background:radial-gradient(circle at 40% 40%,#f6e2b4,#d2a865 65%,#8a6532)}
+.o-terra{background:radial-gradient(circle at 30% 35%,#6aa86a 0 14%,transparent 15%),radial-gradient(circle at 62% 60%,#8a9a58 0 12%,transparent 13%),radial-gradient(circle at 40% 40%,#4e8fdc,#1f4f9a 65%,#0c2350)}
+.o-marte{background:radial-gradient(circle at 40% 40%,#e7966a,#b4532c 65%,#6a2711)}
+.o-jupiter{background:repeating-linear-gradient(180deg,#eadfc8 0 7%,#c99d72 7% 11%,#e6d5b8 11% 17%,#a8714d 17% 20%,#efe3cc 20% 27%,#c08a62 27% 31%)}
+.o-jupiter::before{content:"";position:absolute;left:58%;top:62%;width:16%;height:9%;border-radius:50%;background:#b8583a;box-shadow:0 0 0 2px rgba(240,220,190,.6)}
+.o-saturno{background:repeating-linear-gradient(180deg,#efe0b8 0 9%,#d5bb88 9% 14%,#e9d6aa 14% 22%,#c6a774 22% 26%)}
+.o-urano{background:radial-gradient(circle at 40% 40%,#cdf0f2,#8ccfd8 60%,#4f8f9b)}
+.o-netuno{background:radial-gradient(circle at 40% 40%,#7aa0ff,#3355c8 60%,#16256e)}
+.sring{position:absolute;left:50%;top:50%;width:227%;aspect-ratio:1/.24;transform:translate(-50%,-50%) rotate(-14deg);border-radius:50%;pointer-events:none;
+  background:radial-gradient(closest-side,transparent 54%,rgba(200,180,140,.35) 55%,rgba(200,180,140,.35) 67%,rgba(232,214,176,.85) 68%,rgba(225,205,165,.8) 85%,transparent 86%,transparent 89%,rgba(214,194,156,.6) 90%,rgba(214,194,156,.55) 99%,transparent 100%)}
+.sring.back{z-index:0;clip-path:inset(0 0 50% 0)}
+.sring.front{z-index:2;clip-path:inset(50% 0 0 0)}
+.saturno .orb{z-index:1}
+.slabel{position:absolute;left:50%;transform:translateX(-50%);top:calc(50% + var(--J) * .5 + 26px);text-align:center;white-space:nowrap}
+.slabel b{display:block;font-weight:400;font-size:9px;letter-spacing:.3em;text-transform:uppercase}
+.slabel span{display:block;margin-top:6px;font-size:9px;letter-spacing:.14em;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.sitem::before{content:"";position:absolute;left:50%;top:calc(50% + var(--J) * .5 + 8px);width:1px;height:12px;background:var(--accent)}
+
+/* ---------- Encerramento ---------- */
+.outro .inner{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.outro .hud{position:absolute;left:var(--pad);right:var(--pad);top:110px}
+.otitle{text-shadow:0 2px 40px rgba(5,6,10,.85);font-family:var(--serif);font-weight:300;font-size:clamp(44px,6.6vw,124px);line-height:.98;letter-spacing:-.02em;max-width:15ch}
+.otitle .w{display:inline-block;overflow:hidden;vertical-align:top;padding:.12em .05em .04em;margin:-.12em -.05em -.04em}
+.otitle .w>span{display:inline-block}
+.otitle em{color:var(--accent)}
+.osub{text-shadow:0 1px 16px rgba(5,6,10,.95);margin-top:3.5vh;max-width:52ch;font-size:13px;line-height:1.75;color:var(--ink-2)}
+.btn{position:relative;margin-top:5vh;display:inline-flex;align-items:center;gap:18px;padding:20px 34px;border:1px solid var(--line);overflow:hidden;
+  font-size:10px;letter-spacing:.36em;text-transform:uppercase;transition:color .6s var(--ease),border-color .6s}
+.btn::before{content:"";position:absolute;inset:0;background:var(--ink);transform:translateY(101%);transition:transform .7s var(--ease)}
+.btn span,.btn svg{position:relative}
+.btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1}
+.btn:hover{color:var(--bg);border-color:var(--ink)}
+.btn:hover::before{transform:translateY(0)}
+.credits{position:absolute;left:var(--pad);right:var(--pad);bottom:clamp(20px,4vh,40px);display:flex;justify-content:space-between;gap:24px;
+  font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-3)}
+.here{position:fixed;left:0;top:0;z-index:3;pointer-events:none;opacity:0;display:flex;align-items:center;gap:12px;
+  font-size:9px;letter-spacing:.34em;text-transform:uppercase;color:var(--ink);white-space:nowrap}
+.here i{position:relative;width:14px;height:14px;margin:-7px 0 0 -7px;border:1px solid var(--accent);border-radius:50%}
+.here i::after{content:"";position:absolute;inset:-7px;border:1px solid var(--accent);border-radius:50%;animation:ping 2s var(--ease) infinite}
+@keyframes ping{0%{transform:scale(.4);opacity:1}100%{transform:scale(1.6);opacity:0}}
+
+/* ---------- Responsivo ---------- */
+@media (max-width:860px){
+  .nav{padding-top:18px}
+  .nav-now{display:none}
+  .logo span em{display:none}
+  .inner{padding:88px var(--pad) 22px}
+  .menu ol{columns:1}
+  .corner.tr,.corner.tl{display:none}
+  .hero-title{font-size:clamp(52px,16vw,120px)}
+  .hero-title .row:last-child{padding-left:.4em}
+  .hero-sub{font-size:9px;letter-spacing:.36em;line-height:2;max-width:26ch;margin-left:auto;margin-right:auto}
+
+  .body .inner{grid-template-columns:1fr;grid-template-rows:auto 1fr auto auto auto;row-gap:12px}
+  .body .hud{flex-wrap:wrap;row-gap:8px}
+  .hud .hud-extra{display:none}
+  .ptitle{grid-row:3;font-size:clamp(60px,19vw,140px)}
+  .sheet{grid-column:1;grid-row:4;align-self:end}
+  .sheet h3{padding:10px 12px}
+  .sheet dl{grid-template-columns:repeat(3,1fr)}
+  .cell{padding:10px 12px;border-right:1px solid var(--line)}
+  .cell:nth-child(odd){border-right:1px solid var(--line)}
+  .cell:nth-child(3n){border-right:0}
+  .cell:nth-last-child(-n+2){border-bottom:1px solid var(--line)}
+  .cell:nth-last-child(-n+3){border-bottom:0}
+  .cell dt{font-size:8px;letter-spacing:.14em;margin-bottom:6px;white-space:normal;line-height:1.3}
+  .cell dd{font-size:17px}
+  .cell dd.unit{font-size:8px;letter-spacing:.12em;margin-top:4px}
+  .fact{grid-column:1;grid-row:5;max-width:none;font-size:15px}
+  .fact .label{display:none}
+
+  .scale .inner{--J:27vw}
+  .stitle{font-size:clamp(40px,11vw,70px)}
+  .slead{font-size:12px}
+  .srow{left:var(--pad);right:auto;top:auto;bottom:6vh;transform:none;flex-direction:column;align-items:stretch;gap:2px}
+  .sitem{display:grid;grid-template-columns:calc(var(--J) * 1.95) auto;align-items:center;justify-items:center;min-width:0;min-height:16px}
+  .sitem.saturno{min-width:0}
+  .sitem::before{display:none}
+  .slabel{position:static;transform:none;text-align:left;justify-self:start;display:flex;gap:10px;align-items:baseline}
+  .slabel span{margin-top:0}
+  .sunarc{top:auto;bottom:-2vh;left:auto;right:calc(var(--J) * -9.74 + 4vw);transform:none}
+  .sun-label{left:auto;right:calc(4vw + 12px);bottom:2vh}
+  .credits{flex-direction:column;gap:6px;text-align:center}
+}
+@media (max-width:860px) and (max-height:760px){
+  .fact{display:none}
+  .slead{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .grain{animation:none}
+  .scroll-hint i::after,.logo .l-planet,.here i::after{animation:none}
+  .menu,.btn,.btn::before,.cursor{transition:none}
+}
+</style>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+
+<canvas id="webgl" aria-hidden="true"></canvas>
+<div class="vignette" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+<div class="cursor" aria-hidden="true"></div>
+<div class="cursor-dot" aria-hidden="true"></div>
+<div class="here" aria-hidden="true"><i></i><span>Você está aqui</span></div>
+
+<!-- Carregamento -->
+<div class="loader" role="status" aria-live="polite">
+  <div class="loader-top"><span>Órbita · Atlas Solar</span><span>Calibrando órbitas</span></div>
+  <div class="loader-bar"><i></i></div>
+  <div class="loader-bottom">
+    <div class="loader-count"><span class="lc-num">000</span><small>%</small></div>
+    <p class="loader-error">Não foi possível carregar as bibliotecas 3D. Verifique sua conexão com a internet e recarregue a página.</p>
+    <span>Carregando o cosmos</span>
+  </div>
+</div>
+
+<!-- Navegação -->
+<header class="nav">
+  <a href="#inicio" class="logo" data-goto="0" aria-label="Voltar ao início">
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+      <circle class="l-orbit" cx="16" cy="16" r="14"/>
+      <circle class="l-sun" cx="16" cy="16" r="4.5"/>
+      <circle class="l-planet" cx="30" cy="16" r="2"/>
+    </svg>
+    <span><b>Órbita</b><em>Atlas solar</em></span>
+  </a>
+  <div class="nav-now" aria-live="polite"><span class="now-idx">00</span><span class="now-sep"></span><span class="now-name">Início</span></div>
+  <button class="menu-btn" aria-expanded="false" aria-controls="menu"><span>Menu</span><span class="mb-icon" aria-hidden="true"><i></i><i></i></span></button>
+  <div class="progress" aria-hidden="true"><i class="progress-fill"></i></div>
+</header>
+
+<nav class="menu" id="menu" aria-label="Seções"><ol></ol></nav>
+
+<main id="journey">
+  <section class="sec intro" id="inicio" aria-label="Abertura">
+    <div class="stage"><div class="inner">
+      <div class="corner tl">Via Láctea<br>Braço de Órion</div>
+      <div class="corner tr">Ascensão 00h 00m 00s<br>Declinação +00° 00′</div>
+      <h1 class="hero-title" aria-label="O Sistema Solar">
+        <span class="row" aria-hidden="true" data-split>O Sistema</span>
+        <span class="row" aria-hidden="true" data-split>Solar</span>
+      </h1>
+      <p class="hero-sub reveal">Uma jornada de <b>4,5</b> bilhões de anos</p>
+      <div class="corner bl">1 estrela · 8 planetas</div>
+      <div class="corner br">Dados: NASA</div>
+      <div class="scroll-hint reveal" aria-hidden="true"><span>Role para explorar</span><i></i></div>
+    </div></div>
+  </section>
+  <!-- seções de corpos, escala e encerramento são geradas a partir dos dados -->
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js"></script>
+<script>
+  // Se as bibliotecas não carregarem (offline), avisa em vez de travar no carregamento.
+  history.scrollRestoration = 'manual';
+  setTimeout(function () {
+    if (!window.__solarReady) document.querySelector('.loader').classList.add('failed');
+  }, 12000);
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const { gsap, ScrollTrigger } = window;
+gsap.registerPlugin(ScrollTrigger);
+
+/* =====================================================================
+   AMBIENTE
+   ===================================================================== */
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const isTouch = matchMedia('(pointer: coarse)').matches;
+const isMobile = isTouch || Math.min(innerWidth, innerHeight) < 600;
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const easeIO = (t) => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+/* =====================================================================
+   DADOS (NASA Planetary Fact Sheet; luas confirmadas segundo a NASA, 2025)
+   stats: [rótulo, valor, casas decimais, unidade]
+   ===================================================================== */
+const BODIES = [
+  { id: 'sol', name: 'Sol', idx: '00', type: 'sun', kicker: 'A estrela · anã amarela', extra: 'Tipo espectral G2V',
+    accent: '#ffb54a', r: 16, tilt: 7.25, spin: 0.025, k: [5.6, 4.0], a: [0.55, -0.2], el: 0.08,
+    stats: [['Diâmetro', 1392700, 0, 'km'], ['Distância da Terra', 149.6, 1, 'milhões de km'], ['Rotação no equador', 25, 0, 'dias terrestres'],
+            ['Temp. superfície', 5500, 0, '°C'], ['Temp. do núcleo', 15, 0, 'milhões de °C'], ['Massa do sistema', 99.86, 2, '% do total']],
+    fact: 'A luz que você vê agora saiu do Sol há cerca de <em>8 minutos e 20 segundos</em>.' },
+  { id: 'mercurio', name: 'Mercúrio', idx: '01', kicker: 'Primeiro planeta · rochoso', extra: 'Inclinação axial 0,03°',
+    accent: '#cfc5b8', r: 1.0, tilt: 0.03, spin: 0.03, k: [8.4, 5.4], a: [-0.85, -0.35], el: 0.1, surface: 'mercury', bump: 0.03,
+    stats: [['Diâmetro', 4879, 0, 'km'], ['Distância do Sol', 57.9, 1, 'milhões de km'], ['Duração do dia', 176, 0, 'dias terrestres'],
+            ['Duração do ano', 88, 0, 'dias terrestres'], ['Temp. média', 167, 0, '°C'], ['Luas', 0, 0, 'nenhuma']],
+    fact: 'Apesar de ser o mais próximo do Sol, não é o planeta mais quente — e suas noites chegam a <em>−180 °C</em>.' },
+  { id: 'venus', name: 'Vênus', idx: '02', kicker: 'Segundo planeta · rochoso', extra: 'Inclinação axial 177,4°',
+    accent: '#f0c987', r: 1.9, tilt: 177.4, spin: -0.012, k: [8.2, 5.3], a: [-0.3, -0.8], el: 0.12, surface: 'venus',
+    stats: [['Diâmetro', 12104, 0, 'km'], ['Distância do Sol', 108.2, 1, 'milhões de km'], ['Duração do dia', 116.8, 1, 'dias terrestres'],
+            ['Duração do ano', 224.7, 1, 'dias terrestres'], ['Temp. média', 464, 0, '°C'], ['Luas', 0, 0, 'nenhuma']],
+    fact: 'Leva <em>243 dias</em> para girar uma vez em torno do próprio eixo — mais que seu ano de 225 dias. E gira ao contrário.' },
+  { id: 'terra', name: 'Terra', idx: '03', kicker: 'Terceiro planeta · rochoso', extra: 'Inclinação axial 23,44°',
+    accent: '#5aa9ff', r: 2.0, tilt: 23.44, spin: 0.06, k: [8.4, 5.2], a: [-0.85, -0.3], el: 0.14, surface: 'earth', bump: 0.012,
+    clouds: true,
+    stats: [['Diâmetro', 12756, 0, 'km'], ['Distância do Sol', 149.6, 1, 'milhões de km'], ['Duração do dia', 24, 0, 'horas'],
+            ['Duração do ano', 365.25, 2, 'dias'], ['Temp. média', 15, 0, '°C'], ['Luas', 1, 0, 'a Lua']],
+    fact: 'É o único lugar conhecido no universo que abriga vida — e <em>71%</em> da sua superfície é coberta por água.' },
+  { id: 'marte', name: 'Marte', idx: '04', kicker: 'Quarto planeta · rochoso', extra: 'Inclinação axial 25,19°',
+    accent: '#ff6a3d', r: 1.3, tilt: 25.19, spin: 0.06, k: [8.4, 5.3], a: [-0.3, -0.8], el: 0.1, surface: 'mars', bump: 0.02,
+    stats: [['Diâmetro', 6792, 0, 'km'], ['Distância do Sol', 227.9, 1, 'milhões de km'], ['Duração do dia', 24.7, 1, 'horas'],
+            ['Duração do ano', 687, 0, 'dias terrestres'], ['Temp. média', -65, 0, '°C'], ['Luas', 2, 0, 'Fobos e Deimos']],
+    fact: 'Abriga o Monte Olimpo, o maior vulcão do Sistema Solar: cerca de <em>22 km</em> de altura, quase 2,5 vezes o Everest.' },
+  { id: 'jupiter', name: 'Júpiter', idx: '05', kicker: 'Quinto planeta · gigante gasoso', extra: 'Inclinação axial 3,13°',
+    accent: '#e7a86e', r: 6.5, tilt: 3.13, spin: 0.11, k: [7.8, 5.0], a: [-0.85, -0.35], el: 0.1, surface: 'jupiter',
+    stats: [['Diâmetro', 142984, 0, 'km'], ['Distância do Sol', 778.5, 1, 'milhões de km'], ['Duração do dia', 9.9, 1, 'horas'],
+            ['Duração do ano', 11.86, 2, 'anos terrestres'], ['Temp. média', -110, 0, '°C'], ['Luas', 95, 0, 'confirmadas']],
+    fact: 'A Grande Mancha Vermelha é uma tempestade <em>maior que a Terra</em> que sopra há mais de 150 anos.' },
+  { id: 'saturno', name: 'Saturno', idx: '06', kicker: 'Sexto planeta · gigante gasoso', extra: 'Inclinação axial 26,73°',
+    accent: '#e9cf8f', r: 5.4, tilt: 26.73, spin: 0.1, k: [14, 10.2], a: [-0.3, -0.75], el: 0.3, surface: 'saturn', rings: 'saturn',
+    stats: [['Diâmetro', 120536, 0, 'km'], ['Distância do Sol', 1432, 0, 'milhões de km'], ['Duração do dia', 10.7, 1, 'horas'],
+            ['Duração do ano', 29.4, 1, 'anos terrestres'], ['Temp. média', -140, 0, '°C'], ['Luas', 274, 0, 'confirmadas']],
+    fact: 'Sua densidade média é <em>menor que a da água</em>: numa banheira grande o bastante, Saturno flutuaria.' },
+  { id: 'urano', name: 'Urano', idx: '07', kicker: 'Sétimo planeta · gigante de gelo', extra: 'Inclinação axial 97,77°',
+    accent: '#8fe3ea', r: 3.6, tilt: 97.77, spin: -0.08, k: [8.4, 5.4], a: [-0.85, -0.35], el: 0.14, surface: 'uranus', rings: 'uranus',
+    stats: [['Diâmetro', 51118, 0, 'km'], ['Distância do Sol', 2867, 0, 'milhões de km'], ['Duração do dia', 17.2, 1, 'horas'],
+            ['Duração do ano', 84, 0, 'anos terrestres'], ['Temp. média', -195, 0, '°C'], ['Luas', 29, 0, 'confirmadas']],
+    fact: 'Gira praticamente deitado, com o eixo inclinado <em>98°</em>: cada polo passa cerca de 42 anos sob luz contínua do Sol.' },
+  { id: 'netuno', name: 'Netuno', idx: '08', kicker: 'Oitavo planeta · gigante de gelo', extra: 'Inclinação axial 28,32°',
+    accent: '#4d7dff', r: 3.5, tilt: 28.32, spin: 0.09, k: [8.4, 5.4], a: [-0.3, -0.8], el: 0.12, surface: 'neptune',
+    stats: [['Diâmetro', 49528, 0, 'km'], ['Distância do Sol', 4515, 0, 'milhões de km'], ['Duração do dia', 16.1, 1, 'horas'],
+            ['Duração do ano', 165, 0, 'anos terrestres'], ['Temp. média', -200, 0, '°C'], ['Luas', 16, 0, 'confirmadas']],
+    fact: 'Tem os ventos mais rápidos do Sistema Solar, que passam de <em>2.000 km/h</em>.' },
+];
+// Aparência física: modelo de iluminação, extinção da luz solar e atmosfera
+// atm: th = espessura (fração do raio), tauR/tauM = profundidade óptica vertical Rayleigh/Mie,
+//      hr/hm = altura de escala (fração da espessura), mie = cor da névoa, g = anisotropia, sun = intensidade
+const LOOK = {
+  mercurio: { shade: 1 },
+  venus:   { shade: 2, tauSun: [.08, .14, .3],  atm: { th: .07,  tauR: [.06, .1, .18],    tauM: .35, mie: [1, .9, .7],  g: .6,  sun: 5, hr: .3,  hm: .35 } },
+  terra:   { shade: 0, tauSun: [.07, .15, .33], atm: { th: .06,  tauR: [.06, .14, .34],   tauM: .05, mie: [1, 1, 1],     g: .76, sun: 6, hr: .2,  hm: .08 } },
+  marte:   { shade: 0, tauSun: [.06, .1, .16],  atm: { th: .04,  tauR: [.012, .018, .03], tauM: .22, mie: [1, .68, .45], g: .65, sun: 5, hr: .25, hm: .25 } },
+  jupiter: { shade: 2, tauSun: [.03, .05, .09], atm: { th: .025, tauR: [.03, .045, .08],  tauM: .06, mie: [1, .9, .75],  g: .6,  sun: 4, hr: .25, hm: .2 } },
+  saturno: { shade: 2, tauSun: [.03, .05, .09], atm: { th: .025, tauR: [.03, .045, .08],  tauM: .06, mie: [1, .9, .72],  g: .6,  sun: 4, hr: .25, hm: .2 } },
+  urano:   { shade: 2, tauSun: [.12, .05, .04], atm: { th: .035, tauR: [.03, .09, .11],   tauM: .12, mie: [.75, 1, 1],   g: .6,  sun: 4, hr: .25, hm: .2 } },
+  netuno:  { shade: 2, tauSun: [.12, .06, .04], atm: { th: .035, tauR: [.03, .07, .18],   tauM: .1,  mie: [.7, .85, 1],  g: .6,  sun: 4, hr: .25, hm: .2 } },
+};
+BODIES.forEach(b => Object.assign(b, LOOK[b.id] || {}));
+const PLANETS = BODIES.slice(1);
+const DIAM_JUP = 142984;
+
+// Posições na cena: alinhados no eixo X a partir do Sol (distâncias artísticas, fora de escala)
+{
+  let x = 0, prevR = BODIES[0].r;
+  BODIES.forEach((b, i) => {
+    if (i === 0) { b.pos = new THREE.Vector3(0, 0, 0); return; }
+    x += prevR * 3 + b.r * 3 + 55;
+    b.pos = new THREE.Vector3(x, 0, (i % 2 ? -1 : 1) * (6 + b.r));
+    prevR = b.r;
+  });
+}
+const SYS_CENTER = new THREE.Vector3(320, 0, 0);
+
+/* =====================================================================
+   DOM: geração das seções
+   ===================================================================== */
+const nf = {};
+const fmt = (v, d = 0) => {
+  nf[d] ||= new Intl.NumberFormat('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+  return nf[d].format(v).replace('-', '−');
+};
+const splitChars = (text) => [...text].map(c => c === ' '
+  ? '<span class="ch sp"> </span>'
+  : `<span class="ch"><span>${c}</span></span>`).join('');
+
+function bodySection(b) {
+  const cells = b.stats.map(([label, v, d, unit]) => `
+      <div class="cell"><dt>${label}</dt><dd><span class="num" data-v="${v}" data-d="${d}">${fmt(reduce ? v : 0, d)}</span></dd><dd class="unit">${unit}</dd></div>`).join('');
+  return `
+  <section class="sec body" id="${b.id}" aria-label="${b.name}">
+    <div class="stage"><div class="inner">
+      <div class="hud reveal"><span class="idx">${b.idx}</span><span class="rule"></span><span>${b.kicker}</span><span class="hud-extra">${b.extra}</span></div>
+      <blockquote class="fact reveal"><span class="label">Você sabia?</span>${b.fact}</blockquote>
+      <aside class="sheet" aria-label="Ficha técnica de ${b.name}">
+        <h3><span>Ficha técnica</span><span>${b.name} / ${b.idx}</span></h3>
+        <dl>${cells}</dl>
+      </aside>
+      <h2 class="ptitle" aria-label="${b.name}"><span aria-hidden="true">${splitChars(b.name)}</span></h2>
+    </div></div>
+  </section>`;
+}
+
+function scaleSection() {
+  const items = PLANETS.map(b => {
+    const d = b.stats[0][1];
+    const ring = b.id === 'saturno' ? '<i class="sring back"></i>' : '';
+    const ringF = b.id === 'saturno' ? '<i class="sring front"></i>' : '';
+    return `<div class="sitem ${b.id}" style="--d:${(d / DIAM_JUP).toFixed(4)}"><div class="orbwrap">${ring}<div class="orb o-${b.id}"></div>${ringF}</div>
+      <div class="slabel"><b>${b.name}</b><span>${fmt(d)} km</span></div></div>`;
+  }).join('');
+  return `
+  <section class="sec scale" id="escala" aria-label="Comparação de escala">
+    <div class="stage"><div class="inner">
+      <div class="sunarc" aria-hidden="true"></div>
+      <div class="hud reveal"><span class="idx">09</span><span class="rule"></span><span>Comparação de escala</span><span class="hud-extra">Diâmetros reais</span></div>
+      <h2 class="stitle reveal">Em <em>proporção</em> real</h2>
+      <p class="slead reveal">Todos os planetas na mesma escala de tamanho. Do Sol, só cabe uma fatia: ele é 109 vezes mais largo que a Terra e quase 10 vezes mais largo que Júpiter.</p>
+      <div class="srow">${items}</div>
+      <div class="sun-label"><b>Sol</b> · 1.392.700 km</div>
+    </div></div>
+  </section>`;
+}
+
+function outroSection() {
+  const words = (s, cls = '') => s.split(' ').map(w => `<span class="w"><span${cls ? ` class="${cls}"` : ''}>${w}</span></span>`).join(' ');
+  return `
+  <section class="sec outro" id="via-lactea" aria-label="Encerramento">
+    <div class="stage"><div class="inner">
+      <div class="hud reveal"><span class="idx">10</span><span class="rule"></span><span>Via Láctea</span><span class="hud-extra">Cerca de 100 mil anos-luz de diâmetro</span></div>
+      <h2 class="otitle">${words('Somos um')} <em>${words('pálido ponto azul')}</em> ${words('entre centenas de bilhões de estrelas.')}</h2>
+      <p class="osub reveal">O Sol é apenas uma delas, a cerca de 26 mil anos-luz do centro da galáxia. A viagem termina aqui — a curiosidade, não.</p>
+      <button class="btn reveal" data-goto="0"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M7 13V1M1.5 6.5 7 1l5.5 5.5"/></svg><span>Voltar ao início</span></button>
+      <div class="credits"><span>Dados: NASA · Planetary Fact Sheet</span><span>Visualização artística · distâncias fora de escala</span></div>
+    </div></div>
+  </section>`;
+}
+
+const mainEl = $('#journey');
+mainEl.insertAdjacentHTML('beforeend', BODIES.map(bodySection).join('') + scaleSection() + outroSection());
+$$('[data-split]').forEach(el => { el.innerHTML = splitChars(el.textContent.trim()); });
+
+// Descrição das seções (para câmera, cor de acento, menu e progresso)
+const SECS = [
+  { type: 'intro', name: 'Início', idx: '00', accent: '#cfd8ff' },
+  ...BODIES.map(b => ({ type: 'body', body: b, name: b.name, idx: b.idx, accent: b.accent })),
+  { type: 'scale', name: 'Escala', idx: '09', accent: '#eef1f5' },
+  { type: 'outro', name: 'Via Láctea', idx: '10', accent: '#b9a6ff' },
+];
+const secEls = $$('.sec');
+const NS = SECS.length;
+const hexRgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+SECS.forEach(s => s.rgb = hexRgb(s.accent));
+
+// Menu + marcas da barra de progresso
+$('.menu ol').innerHTML = SECS.map((s, i) => `<li><a href="#${secEls[i].id}" data-goto="${i}"><small>${s.idx}</small>${s.name}</a></li>`).join('');
+const progressEl = $('.progress');
+SECS.forEach((s, i) => {
+  const t = document.createElement('span');
+  t.className = 'tick'; t.style.left = `${(i / (NS - 1)) * 100}%`;
+  progressEl.appendChild(t);
+});
+const ticks = $$('.tick', progressEl);
+
+/* =====================================================================
+   GLSL
+   ===================================================================== */
+const NOISE = /* glsl */`
+#ifndef OCT
+#define OCT 5
+#endif
+vec3 mod289(vec3 x){return x-floor(x*(1./289.))*289.;}
+vec4 mod289(vec4 x){return x-floor(x*(1./289.))*289.;}
+vec4 permute(vec4 x){return mod289(((x*34.)+1.)*x);}
+vec4 taylorInvSqrt(vec4 r){return 1.79284291400159-0.85373472095314*r;}
+// Simplex 3D com gradiente analítico (Gustavson / Ashima Arts)
+float snoiseD(vec3 v, out vec3 grad){
+  const vec2 C=vec2(1./6.,1./3.); const vec4 D=vec4(0.,.5,1.,2.);
+  vec3 i=floor(v+dot(v,C.yyy)); vec3 x0=v-i+dot(i,C.xxx);
+  vec3 g=step(x0.yzx,x0.xyz); vec3 l=1.-g;
+  vec3 i1=min(g.xyz,l.zxy); vec3 i2=max(g.xyz,l.zxy);
+  vec3 x1=x0-i1+C.xxx; vec3 x2=x0-i2+C.yyy; vec3 x3=x0-D.yyy;
+  i=mod289(i);
+  vec4 p=permute(permute(permute(i.z+vec4(0.,i1.z,i2.z,1.))+i.y+vec4(0.,i1.y,i2.y,1.))+i.x+vec4(0.,i1.x,i2.x,1.));
+  float n_=.142857142857; vec3 ns=n_*D.wyz-D.xzx;
+  vec4 j=p-49.*floor(p*ns.z*ns.z);
+  vec4 x_=floor(j*ns.z); vec4 y_=floor(j-7.*x_);
+  vec4 x=x_*ns.x+ns.yyyy; vec4 y=y_*ns.x+ns.yyyy;
+  vec4 h=1.-abs(x)-abs(y);
+  vec4 b0=vec4(x.xy,y.xy); vec4 b1=vec4(x.zw,y.zw);
+  vec4 s0=floor(b0)*2.+1.; vec4 s1=floor(b1)*2.+1.;
+  vec4 sh=-step(h,vec4(0.));
+  vec4 a0=b0.xzyw+s0.xzyw*sh.xxyy; vec4 a1=b1.xzyw+s1.xzyw*sh.zzww;
+  vec3 p0=vec3(a0.xy,h.x); vec3 p1=vec3(a0.zw,h.y); vec3 p2=vec3(a1.xy,h.z); vec3 p3=vec3(a1.zw,h.w);
+  vec4 norm=taylorInvSqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));
+  p0*=norm.x; p1*=norm.y; p2*=norm.z; p3*=norm.w;
+  vec4 m=max(.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.);
+  vec4 m2=m*m; vec4 m4=m2*m2;
+  vec4 pdotx=vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3));
+  vec4 tmp=m2*m*pdotx;
+  grad=-8.*(tmp.x*x0+tmp.y*x1+tmp.z*x2+tmp.w*x3);
+  grad+=m4.x*p0+m4.y*p1+m4.z*p2+m4.w*p3;
+  grad*=42.;
+  return 42.*dot(m4,pdotx);
+}
+float snoise(vec3 v){ vec3 g; return snoiseD(v,g); }
+float fbm(vec3 p){ float s=0., a=.5; for(int i=0;i<OCT;i++){ s+=a*snoise(p); p=p*2.03+vec3(1.7,9.2,3.1); a*=.5; } return s; }
+float fbm3(vec3 p){ float s=0., a=.5; for(int i=0;i<3;i++){ s+=a*snoise(p); p=p*2.03+vec3(4.3,1.1,7.7); a*=.5; } return s; }
+float fbmD(vec3 p, out vec3 g){
+  float s=0., a=.5, f=1.; g=vec3(0.);
+  for(int i=0;i<OCT;i++){ vec3 gi; s+=a*snoiseD(p,gi); g+=a*f*gi; p=p*2.03+vec3(1.7,9.2,3.1); f*=2.03; a*=.5; }
+  return s;
+}
+float ridged(vec3 p){
+  float s=0., a=.5, prev=1.;
+  for(int i=0;i<4;i++){ float n=1.-abs(snoise(p)); n*=n; s+=a*n*prev; prev=n; p=p*2.1+vec3(3.1,7.3,1.9); a*=.5; }
+  return s;
+}
+`;
+
+const HELPERS = /* glsl */`
+vec3 lin(vec3 c){ return pow(c, vec3(2.2)); }
+vec3 hash33(vec3 p){ p=fract(p*vec3(.1031,.1030,.0973)); p+=dot(p,p.yxz+33.33); return fract((p.xxy+p.yxx)*p.zyx); }
+float band(float x, float a, float b, float s){ return smoothstep(a-s,a+s,x)*(1.-smoothstep(b-s,b+s,x)); }
+vec3 rotY(vec3 p, float a){ float c=cos(a), s=sin(a); return vec3(p.x*c-p.z*s, p.y, p.x*s+p.z*c); }
+vec3 sph(float la, float lo){ float a=radians(la), b=radians(lo); return vec3(cos(a)*cos(b), sin(a), cos(a)*sin(b)); }
+// normal a partir do gradiente da altura (espaço do objeto, esfera unitária)
+vec3 perturb(vec3 p, vec3 g){ return normalize(p-(g-dot(g,p)*p)); }
+float gbump(vec3 p, vec3 c, float w, float A, inout vec3 g){ vec3 d=p-c; float e=A*exp(-dot(d,d)/(w*w)); g+=-2.*d*e/(w*w); return e; }
+float lonDiff(float lon, float lo){ return mod(lon-lo+3.14159265,6.2831853)-3.14159265; }
+
+// Crateras com gradiente analítico: bacia, borda elevada, ejecta e raios das crateras jovens
+float craters(vec3 p, float dens, out vec3 grad, out float bright){
+  vec3 ip=floor(p), fp=fract(p); float hh=0.; grad=vec3(0.); bright=0.;
+  for(int x=-1;x<=1;x++) for(int y=-1;y<=1;y++) for(int z=-1;z<=1;z++){
+    vec3 o=vec3(float(x),float(y),float(z));
+    vec3 r=hash33(ip+o);
+    if(r.z>dens) continue;
+    vec3 c=o+r-fp;
+    float rad=.12+.34*r.x*r.x;
+    float dl=length(c);
+    float d=dl/rad;
+    if(d>2.4) continue;
+    float k=.5+r.y;
+    float hd=0., dh=0.;
+    if(d<1.){ hd=-.7*(1.-d*d); dh=1.4*d; }
+    float e=(d-1.)/.22; float rim=.36*exp(-e*e); hd+=rim; dh+=rim*(-2.*e/.22);
+    if(d>1.){ float ej=.07*exp(-(d-1.)*3.); hd+=ej; dh+=-3.*ej; }
+    hh+=hd*k;
+    grad+=dh*k*(-c/(max(dl,1e-4)*rad));
+    if(r.y>.88){
+      float ray=smoothstep(.25,.85,snoise(normalize(c)*7.+r*13.));
+      bright+=ray*exp(-max(d-1.,0.)*1.1)*step(1.,d)*.9+(1.-smoothstep(.7,1.2,d))*.45;
+    } else {
+      bright-=(1.-smoothstep(0.,1.,d))*.12*r.y;
+    }
+  }
+  return hh;
+}
+
+// Faixas de Júpiter nas latitudes reais (graus)
+vec3 jupBands(float L){
+  vec3 zone=lin(vec3(.94,.90,.81)), eq=lin(vec3(.91,.83,.68)), belt=lin(vec3(.74,.58,.44)), belt2=lin(vec3(.68,.56,.46));
+  vec3 tz=lin(vec3(.86,.80,.70)), pol=lin(vec3(.56,.54,.53));
+  vec3 c=zone;
+  c=mix(c,eq,1.-smoothstep(3.,7.,abs(L)));
+  c=mix(c,belt,band(L,7.,18.,1.6));          // Cinturão Equatorial Norte
+  c=mix(c,belt,band(L,-21.,-8.,1.6));        // Cinturão Equatorial Sul
+  c=mix(c,belt2,band(L,24.,31.,2.)*.85);
+  c=mix(c,belt2,band(L,-34.,-27.,2.)*.85);
+  c=mix(c,tz,band(L,35.,48.,3.)*.7);
+  c=mix(c,tz,band(L,-50.,-37.,3.)*.7);
+  c=mix(c,belt2,band(L,40.,44.,1.5)*.4);
+  c=mix(c,pol,smoothstep(48.,66.,abs(L)));
+  return c;
+}
+`;
+
+// Anéis: densidade e cor em função do raio (em raios planetários)
+const RINGS = /* glsl */`
+float rhash(float x){ return fract(sin(x*127.1)*43758.5453); }
+float rnoise(float x){ float i=floor(x), f=fract(x); return mix(rhash(i),rhash(i+1.),f*f*(3.-2.*f)); }
+float ringDensity(float r){
+  float c=smoothstep(1.235,1.25,r)*(1.-smoothstep(1.52,1.528,r))*(.12+.1*smoothstep(1.3,1.5,r));   // anel C
+  float b=smoothstep(1.525,1.54,r)*(1.-smoothstep(1.946,1.952,r))*mix(.55,1.,smoothstep(1.55,1.75,r)); // anel B
+  float a=smoothstep(2.025,2.032,r)*(1.-smoothstep(2.262,2.269,r))*.5;                                 // anel A
+  a*=1.-.95*(1.-smoothstep(0.,.006,abs(r-2.216)));   // divisão de Encke
+  a*=1.-.7*(1.-smoothstep(0.,.002,abs(r-2.264)));    // divisão de Keeler
+  float cass=smoothstep(1.952,1.96,r)*(1.-smoothstep(2.02,2.027,r))*.04; // divisão de Cassini (quase vazia)
+  float d=c+b+a+cass;
+  d*=.62+.38*rnoise(r*700.);
+  d*=.8+.2*rnoise(r*130.+7.);
+  return d;
+}
+vec3 ringColor(float r){
+  vec3 cC=vec3(.58,.54,.49), cB=vec3(.92,.84,.70), cA=vec3(.80,.75,.66);
+  vec3 c=mix(cC,cB,smoothstep(1.50,1.56,r));
+  c=mix(c,cA,smoothstep(1.95,2.03,r));
+  c*=.9+.1*rnoise(r*60.);
+  return pow(c,vec3(2.2));
+}
+float uranusRings(float r){
+  float d=0.;
+  d+=exp(-pow((r-1.637)/.006,2.))*.35;
+  d+=exp(-pow((r-1.750)/.007,2.))*.4;
+  d+=exp(-pow((r-1.790)/.007,2.))*.4;
+  d+=exp(-pow((r-1.847)/.006,2.))*.3;
+  d+=exp(-pow((r-1.863)/.006,2.))*.35;
+  d+=exp(-pow((r-1.900)/.007,2.))*.45;
+  d+=exp(-pow((r-2.001)/.018,2.))*.8;
+  return d;
+}
+`;
+
+// Nuvens da Terra: ciclones (redemoinhos), faixas de convergência e cirros
+const CLOUDS = /* glsl */`
+vec3 rotAxis(vec3 p, vec3 a, float ang){ float c=cos(ang), s=sin(ang); return p*c+cross(a,p)*s+a*dot(a,p)*(1.-c); }
+vec3 swirl(vec3 p, vec3 c, float k, float rad){ float d=distance(p,c); return rotAxis(p,c,k*exp(-d*d/(rad*rad))); }
+float earthClouds(vec3 p, float t){
+  vec3 q=p;
+  q=swirl(q,normalize(vec3(.55,.62,.56)),3.2,.2);
+  q=swirl(q,normalize(vec3(-.62,-.58,.52)),-3.0,.19);
+  q=swirl(q,normalize(vec3(.2,.7,-.69)),2.6,.16);
+  q=swirl(q,normalize(vec3(-.3,-.75,-.59)),-2.8,.18);
+  q=swirl(q,normalize(vec3(.9,.36,-.24)),4.0,.07);   // furacão tropical
+  vec3 qq=q*2.0+vec3(t*.01,0.,t*.004);
+  float base=fbm(qq*1.1+.6*fbm3(qq*.7));            // grandes sistemas (frentes, ciclones)
+  float detail=fbm(vec3(qq.x*5.5,qq.y*7.,qq.z*5.5));  // cúmulos e textura fina
+  float latd=asin(clamp(abs(p.y),0.,1.));
+  float belt=.12*exp(-pow(latd/.12,2.))+.14*exp(-pow((latd-1.)/.22,2.))-.16*exp(-pow((latd-.45)/.16,2.));
+  float c=smoothstep(0.,.3,base+belt+detail*.35-.1);
+  c*=.5+.5*smoothstep(-.35,.35,detail*1.3+.15);       // campos quebrados
+  float wisp=fbm3(vec3(qq.x*3.,qq.y*10.,qq.z*3.));
+  c=max(c,smoothstep(.2,.5,wisp)*.25*smoothstep(-.05,.2,base+belt));
+  return clamp(c,0.,1.);
+}
+`;
+
+const SPHERE_VS = /* glsl */`
+varying vec3 vPos; varying vec3 vNormalW; varying vec3 vWorldPos;
+void main(){
+  vPos = position;
+  vec4 wp = modelMatrix * vec4(position, 1.0);
+  vWorldPos = wp.xyz;
+  vNormalW = normalize(mat3(modelMatrix) * normal);
+  gl_Position = projectionMatrix * viewMatrix * wp;
+}`;
+
+// Superfícies procedurais. Cada uma define: albedo, g (gradiente do relevo), spec, rough, emissive, shadow.
+const SURFACES = {
+  mercury: /* glsl */`
+    vec3 g1, g2, g3, gn; float b1, b2, b3;
+    craters(p*3.0, .55, g1, b1);
+    craters(p*7.0 + 11.0, .5, g2, b2);
+    craters(p*16.0 + 23.0, .45, g3, b3);
+    float n = fbmD(p*4.0, gn);
+    g = .012*3.0*g1 + .007*7.0*g2 + .003*16.0*g3 + .004*4.0*gn;
+    float tone = fbm3(p*2.5 + 4.0);               // planícies lisas mais escuras x terrenos craterados
+    vec3 base = mix(lin(vec3(.50,.48,.45)), lin(vec3(.38,.36,.34)), smoothstep(-.1,.4,tone));
+    base *= .9 + .2*n;
+    albedo = clamp(base * (1. + .55*(b1*.8 + b2*.6 + b3*.4)), 0., 1.);
+  `,
+  venus: /* glsl */`
+    vec3 q = vec3(cos(lon), lat*3.0, sin(lon))*1.6;
+    float w = fbm3(q + vec3(0., 0., t*.015));
+    float n = fbm(vec3(p.x*1.5 + w + abs(lat)*2.2, lat*7. + w*1.5, p.z*1.5 + abs(lat)*2.2));   // padrão em "Y"
+    albedo = mix(lin(vec3(.90,.82,.64)), lin(vec3(.97,.92,.80)), smoothstep(-.5,.5,n));
+    albedo = mix(albedo, lin(vec3(.80,.68,.48)), smoothstep(.2,.7,fbm3(vec3(p.x*3. + abs(lat)*4., lat*14., p.z*3.)))*.22);
+  `,
+  earth: /* glsl */`
+    vec3 q = p*.85 + vec3(3.1,1.7,.4);
+    vec3 wq = q + .5*vec3(fbm3(q*1.3+vec3(1.3)), fbm3(q*1.3+vec3(5.7,2.1,9.2)), fbm3(q*1.3+vec3(8.3,4.4,1.9)));
+    float cont = fbm(wq);
+    vec3 gd; float det = fbmD(p*7.0, gd);
+    float e = cont + det*.08 - .01;                    // elevação: > 0 é terra firme
+    float land = smoothstep(0., .012, e);
+    float alatR = abs(latR);
+    float mtn = ridged(p*4.5 + 2.0) * smoothstep(.04, .22, e);
+    float moist = .5*cos(alatR*6.) + .9*fbm3(p*2.4 + 7.) - smoothstep(.06, .4, e)*.3;  // células de Hadley
+    vec3 lc = mix(lin(vec3(.79,.65,.45)), lin(vec3(.68,.46,.28)), smoothstep(-.2, .3, fbm3(p*6. + 3.)));  // desertos
+    lc = mix(lc, lin(vec3(.45,.43,.26)), smoothstep(-.5, -.15, moist));                                   // savanas
+    lc = mix(lc, mix(lin(vec3(.14,.25,.09)), lin(vec3(.22,.31,.14)), smoothstep(.35,.75,alatR)), smoothstep(-.08, .3, moist)); // florestas
+    lc = mix(lc, lin(vec3(.37,.35,.30)), smoothstep(1.0, 1.15, alatR));                                    // tundra
+    lc = mix(lc, lin(vec3(.35,.31,.27)), smoothstep(.2, .5, mtn));                                         // montanhas
+    lc = mix(lc, lin(vec3(.9,.92,.95)), smoothstep(.55, .7, mtn + alatR*.3));                              // neve
+    float ice = smoothstep(1.17, 1.25, alatR + det*.12);
+    vec3 ocean = mix(lin(vec3(.004,.03,.10)), lin(vec3(.02,.15,.22)), smoothstep(-.1, 0., e));             // plataformas rasas
+    albedo = mix(ocean, lc, land);
+    albedo = mix(albedo, lin(vec3(.92,.94,.97)), ice);
+    spec = (1. - land) * (1. - ice);
+    rough = .26 + .1*fbm3(p*15.);
+    g = land * gd * 7. * (.0025 + .012*mtn);
+    float cs = earthClouds(normalize(p + Lo*.018), t);  // sombra das nuvens
+    shadow = 1. - .6*cs;
+    float pop = smoothstep(.1, .55, fbm3(p*16.)) * land * (1. - ice) * smoothstep(-.4, .1, moist) * (1. - smoothstep(.15, .45, e));
+    float lights = pop * smoothstep(.35, .8, snoise(p*70.)*.5 + .5);
+    emissive = lights * (1. - smoothstep(-.15, .02, dot(N, L))) * lin(vec3(1., .74, .4)) * 1.6 * (1. - .8*cs);
+  `,
+  mars: /* glsl */`
+    vec3 gn; float n = fbmD(p*2.4 + 8., gn);
+    float s = 1. - .65*smoothstep(-.15, .35, lat);     // hemisfério sul mais craterado
+    vec3 gc, gc2; float bc, bc2;
+    craters(p*5.5, .5, gc, bc);
+    craters(p*13. + 5., .45, gc2, bc2);
+    vec3 gv = vec3(0.);
+    gbump(p, sph(0., 250.), .35, .012, gv);                                          // bojo de Tharsis
+    gbump(p, sph(18., 226.), .075, .024, gv); gbump(p, sph(18., 226.), .016, -.01, gv); // Monte Olimpo
+    gbump(p, sph(-9., 239.), .045, .013, gv); gbump(p, sph(-9., 239.), .01, -.006, gv); // Arsia
+    gbump(p, sph(1., 247.), .045, .013, gv);  gbump(p, sph(1., 247.), .01, -.006, gv);  // Pavonis
+    gbump(p, sph(11., 256.), .045, .013, gv); gbump(p, sph(11., 256.), .01, -.006, gv); // Ascraeus
+    gbump(p, sph(25., 147.), .05, .01, gv);                                          // Elysium
+    float hel = gbump(p, sph(-42., 70.), .2, -.016, gv);                             // bacia Hellas
+    gbump(p, sph(-50., 318.), .12, -.008, gv);                                       // bacia Argyre
+    // Valles Marineris
+    float vl = degrees(lonDiff(lon, radians(285.)));
+    float vc = -8. + 2.*sin(radians(vl*6.));
+    float can = exp(-pow((latD - vc)/1.4, 2.)) * (1. - smoothstep(20., 28., abs(vl)));
+    gv.y += -.01*can*(-2.*(latD - vc)/1.96) * 57.3/max(cos(latR), .2);
+    g = .005*2.4*gn + s*(.008*5.5*gc + .003*13.*gc2) + gv;
+    // regiões escuras clássicas (albedo)
+    vec3 pw = normalize(p + .09*vec3(n, fbm3(p*3. + 2.), fbm3(p*3. + 9.)));
+    float dk = exp(-pow(distance(pw, sph(9., 70.))/.16, 2.));    // Syrtis Major
+    dk += .9*exp(-pow(distance(pw, sph(46., 330.))/.2, 2.));     // Acidalia
+    dk += .8*exp(-pow(distance(pw, sph(-25., 330.))/.26, 2.));   // Mare Erythraeum
+    dk += .8*exp(-pow(distance(pw, sph(-3., 0.))/.14, 2.));      // Sinus Meridiani
+    dk += .8*exp(-pow(distance(pw, sph(-24., 145.))/.22, 2.));   // Mare Cimmerium
+    dk += .7*exp(-pow(distance(pw, sph(-30., 205.))/.2, 2.));    // Mare Sirenum
+    dk += .6*exp(-pow(distance(pw, sph(-15., 100.))/.2, 2.));    // Mare Tyrrhenum
+    dk = clamp(dk, 0., 1.) * smoothstep(-.35, .25, n + .1);
+    vec3 dust = lin(vec3(.78,.50,.31));
+    vec3 dark = lin(vec3(.36,.25,.18));
+    albedo = mix(dust, dark, dk*.85);
+    albedo *= .9 + .2*fbm3(p*12.);
+    albedo = mix(albedo, lin(vec3(.84,.60,.40)), clamp(-hel/.016, 0., 1.)*.5);
+    albedo *= 1. + s*(bc*.2 + bc2*.12);
+    albedo = mix(albedo, dark*.7, can*.7);
+    float capN = smoothstep(1.3, 1.36, latR + n*.06);
+    capN *= 1. - .35*smoothstep(.6, .95, sin(lon*2. + (1.5708 - latR)*45.));   // vales espirais da calota
+    float capS = smoothstep(1.36, 1.42, -latR + n*.06);
+    albedo = mix(albedo, lin(vec3(.95,.93,.9)), max(capN, capS));
+  `,
+  jupiter: /* glsl */`
+    vec3 pr = rotY(p, t*.006*sin(lat*23.));          // rotação diferencial das faixas
+    vec3 sq = vec3(pr.x*3.5, pr.y*12., pr.z*3.5);
+    float t1 = fbm(sq);
+    float t2 = fbm(sq*2.2 + vec3(t1*2.5, 0., t1*2.5));
+    float L0 = latD + t1*3.2;
+    float bm = band(L0,7.,19.,2.) + band(L0,-21.,-7.,2.) + band(L0,23.,32.,2.) + band(L0,-35.,-26.,2.);
+    float Lw = L0 + t2*(1.6 + 5.*bm);                  // cinturões mais turbulentos que as zonas
+    vec3 c = jupBands(Lw);
+    c *= .9 + .14*t2 + .12*fbm3(vec3(pr.x*14., pr.y*60., pr.z*14.) + t2*2.);
+    float fest = smoothstep(.15, .45, fbm3(vec3(pr.x*7., pr.y*22., pr.z*7.))) * band(Lw, 3.5, 7.5, 1.);
+    c = mix(c, lin(vec3(.42,.45,.52)), fest*.55);     // festões azulados
+    c *= mix(1., .85 + .3*fbm3(p*9.), smoothstep(45., 62., abs(latD)));
+    // Grande Mancha Vermelha (~22° S)
+    vec2 sd = vec2(lonDiff(lon, 1.2)*cos(latR)/.105, (latR + .384)/.072);
+    float rr = length(sd);
+    float sa = atan(sd.y, sd.x) + (1. - clamp(rr, 0., 1.))*3.5 + t*.15;
+    float sn = snoise(vec3(cos(sa)*rr*2.5, sin(sa)*rr*2.5, 3.7));
+    vec3 grs = mix(lin(vec3(.74,.36,.22)), lin(vec3(.86,.55,.38)), .5 + .5*sn);
+    grs = mix(grs, lin(vec3(.80,.50,.36)), 1. - smoothstep(0., .5, rr));
+    c = mix(c, lin(vec3(.93,.88,.79)), band(rr, 1.0, 1.45, .12)*.7);
+    c = mix(c, grs, 1. - smoothstep(.85, 1.02, rr + .06*t1));
+    for (int i = 0; i < 3; i++) {                     // ovais brancos (~33° S)
+      vec2 od = vec2(lonDiff(lon, 2.3 + float(i)*.55)*cos(latR)/.035, (latD + 33.)/1.3);
+      c = mix(c, lin(vec3(.95,.93,.88)), 1. - smoothstep(.7, 1., length(od)));
+    }
+    albedo = c;
+  `,
+  saturn: /* glsl */`
+    vec3 pr = rotY(p, t*.006*sin(lat*21.));
+    float t1 = fbm(vec3(pr.x*2.5, pr.y*11., pr.z*2.5));
+    float t2 = fbm3(vec3(pr.x*6., pr.y*30., pr.z*6.) + t1);
+    float Lw = latD + t1*1.6 + t2*.6;
+    vec3 zone = lin(vec3(.90,.82,.63)), belt = lin(vec3(.79,.67,.47));
+    vec3 c = zone;
+    c = mix(c, lin(vec3(.93,.87,.71)), 1. - smoothstep(8., 13., abs(Lw)));
+    c = mix(c, belt, (band(Lw,13.,23.,2.) + band(Lw,-24.,-14.,2.))*.65);
+    c = mix(c, belt, smoothstep(.2, 1., sin(Lw*.6))*.25*smoothstep(22., 30., abs(Lw)));
+    c *= .96 + .06*sin(Lw*2.4) + .05*t2;
+    c = mix(c, lin(vec3(.60,.63,.63)), smoothstep(58., 75., abs(latD))*.8);
+    if (lat > 0.) {                                   // hexágono do polo norte
+      float pa = acos(clamp(lat, -1., 1.));
+      float hexR = .21 / cos(mod(lon, 1.0471976) - .5235988);
+      c = mix(c, lin(vec3(.50,.54,.57)), (1. - smoothstep(hexR - .01, hexR + .01, pa))*.6);
+      c = mix(c, lin(vec3(.42,.44,.46)), (1. - smoothstep(0., .012, abs(pa - hexR)))*.5);
+    }
+    albedo = c;
+  `,
+  uranus: /* glsl */`
+    float n = fbm3(vec3(p.x*1.5, p.y*7., p.z*1.5) + vec3(0., 0., t*.005));
+    vec3 c = lin(vec3(.65,.86,.89));
+    c *= .97 + .035*sin(latD*.3 + n*1.5);
+    c = mix(c, lin(vec3(.80,.94,.95)), smoothstep(50., 72., latD)*.75);   // capuz polar brilhante
+    c = mix(c, lin(vec3(.58,.80,.85)), band(latD, 20., 45., 6.)*.25);
+    vec2 sd = vec2(lonDiff(lon, .8)*cos(latR)/.06, (latD - 32.)/2.);
+    c = mix(c, lin(vec3(.9,.97,.97)), (1. - smoothstep(.6, 1., length(sd)))*.5);
+    albedo = c;
+  `,
+  neptune: /* glsl */`
+    vec3 pr = rotY(p, t*.008*sin(lat*19.));
+    float t1 = fbm(vec3(pr.x*3., pr.y*10., pr.z*3.));
+    float Lw = latD + t1*3.;
+    vec3 c = lin(vec3(.24,.40,.86));
+    c = mix(c, lin(vec3(.16,.30,.74)), band(Lw,-52.,-30.,4.)*.6 + smoothstep(55.,75.,abs(Lw))*.45);
+    c = mix(c, lin(vec3(.30,.48,.92)), band(Lw,-12.,12.,6.)*.3);
+    c *= .94 + .1*fbm3(vec3(pr.x*6., pr.y*24., pr.z*6.));
+    vec2 sd = vec2(lonDiff(lon, 2.2)*cos(latR)/.13, (latD + 20.)/4.);      // Grande Mancha Escura
+    c = mix(c, lin(vec3(.07,.13,.40)), 1. - smoothstep(.75, 1.05, length(sd) + .12*t1));
+    vec2 cd = (sd - vec2(.3, -1.6))*vec2(1., 2.);
+    c = mix(c, vec3(.88), exp(-dot(cd, cd)*1.5)*.85);                       // nuvens companheiras
+    float streak = smoothstep(.15, .5, fbm3(vec3(pr.x*5., pr.y*50., pr.z*5.)));
+    float sb = exp(-pow((latD - 27.)/2.5, 2.)) + .7*exp(-pow((latD + 42.)/2., 2.)) + .5*exp(-pow((latD + 68.)/2., 2.));
+    c = mix(c, vec3(.92), streak*sb*.85);                                   // cirros de metano
+    albedo = c;
+  `,
+};
+
+// uShade: 0 = Lambert, 1 = regolito (Lommel–Seeliger), 2 = gasoso (escurecimento de limbo de Minnaert)
+const PLANET_FS = (surface) => /* glsl */`
+uniform float uTime; uniform vec3 uSunPos; uniform vec3 uCenter; uniform vec3 uRingN; uniform float uR; uniform float uRing;
+uniform float uShade; uniform vec3 uTauSun;
+uniform mat4 modelMatrix;
+varying vec3 vPos; varying vec3 vNormalW; varying vec3 vWorldPos;
+${NOISE}
+${HELPERS}
+${RINGS}
+${CLOUDS}
+void main(){
+  vec3 p = normalize(vPos);
+  vec3 N = normalize(vNormalW);
+  vec3 L = normalize(uSunPos - vWorldPos);
+  vec3 V = normalize(cameraPosition - vWorldPos);
+  mat3 M = mat3(modelMatrix);
+  vec3 Lo = normalize(transpose(M) * L);
+  float lat = p.y, lon = atan(p.z, p.x), t = uTime;
+  float latR = asin(clamp(lat, -1., 1.)), latD = degrees(latR);
+  vec3 albedo = vec3(.5); vec3 g = vec3(0.); float spec = 0.; float rough = .3; vec3 emissive = vec3(0.); float shadow = 1.;
+  ${surface}
+  vec3 Nb = normalize(M * perturb(p, g));
+  float ndl = dot(N, L);
+  float mu0 = max(dot(Nb, L), 0.);
+  float mu = max(dot(N, V), 0.);
+  float diffuse;
+  if (uShade < .5) diffuse = mu0;
+  else if (uShade < 1.5) diffuse = mix(mu0, clamp(2.*mu0/(mu0 + mu + 1e-3), 0., 1.25), .65);
+  else diffuse = pow(mu0, 1.15) * pow(max(mu, .03), .15);
+  float tw = uShade > 1.5 ? .22 : .1;
+  float term = smoothstep(-tw*.35, tw, ndl);
+  vec3 sunT = exp(-uTauSun * max(1./(max(ndl, 0.) + .08) - 1., 0.));   // avermelhamento perto do terminador
+  vec3 light = sunT * term * shadow * 1.4;
+  if (uRing > .5) {                                   // sombra dos anéis sobre Saturno
+    float den = dot(L, uRingN);
+    if (abs(den) > 1e-3) {
+      float tt = dot(uCenter - vWorldPos, uRingN) / den;
+      if (tt > 0.) light *= 1. - clamp(ringDensity(length(vWorldPos + L*tt - uCenter)/uR)*1.4, 0., 1.)*.85;
+    }
+  }
+  vec3 col = albedo * diffuse * light;
+  if (spec > 0.) {                                    // GGX + Fresnel (água)
+    vec3 H = normalize(L + V);
+    float NdH = max(dot(Nb, H), 0.);
+    float a2 = pow(rough, 4.);
+    float dd = NdH*NdH*(a2 - 1.) + 1.;
+    float D = a2 / (3.14159 * dd * dd);
+    float F = .02 + .98*pow(1. - max(dot(H, V), 0.), 5.);
+    col += spec * D * F / (4.*max(mu, .2)) * smoothstep(0., .15, ndl) * light;
+  }
+  col += albedo * .004;
+  col += emissive;
+  gl_FragColor = vec4(col, 1.0);
+}`;
+
+const SUN_FS = /* glsl */`
+uniform float uTime;
+varying vec3 vPos; varying vec3 vNormalW; varying vec3 vWorldPos;
+${NOISE}
+void main(){
+  vec3 p = normalize(vPos);
+  float t = uTime;
+  float n1 = fbm(p*3.0 + vec3(t*.04, -t*.03, t*.02));
+  float n2 = fbm(p*7.0 + n1*1.6 + vec3(0.0, t*.07, 0.0));
+  float gran = snoise(p*42.0 + vec3(t*.25));
+  float n = n1*.45 + n2*.55 + gran*.07;
+  vec3 V = normalize(cameraPosition - vWorldPos);
+  float mu = clamp(dot(normalize(vNormalW), V), 0.0, 1.0);
+  vec3 col = mix(vec3(.9,.16,.02), vec3(1.0,.46,.07), smoothstep(-.45,.05,n));
+  col = mix(col, vec3(1.0,.85,.52), smoothstep(.0,.5,n));
+  float spots = smoothstep(.74,.82, snoise(p*3.0 + vec3(11.0, 0.0, t*.01)));
+  col *= 1.0 - spots*.75;
+  col *= (.3 + .7*pow(mu, .55)) * 1.3;
+  col += vec3(1.0,.38,.06) * pow(1.0 - mu, 3.0) * .9;
+  gl_FragColor = vec4(col, 1.0);
+}`;
+
+const CLOUD_FS = /* glsl */`
+uniform float uTime; uniform vec3 uSunPos; uniform vec3 uTauSun;
+varying vec3 vPos; varying vec3 vNormalW; varying vec3 vWorldPos;
+${NOISE}
+${CLOUDS}
+void main(){
+  vec3 p = normalize(vPos);
+  float c = earthClouds(p, uTime);
+  vec3 N = normalize(vNormalW); vec3 L = normalize(uSunPos - vWorldPos);
+  float ndl = dot(N, L);
+  vec3 sunT = exp(-uTauSun * max(1./(max(ndl, 0.) + .08) - 1., 0.) * .7);
+  float lit = (.2 + .8*max(ndl, 0.)) * smoothstep(-.12, .1, ndl);
+  gl_FragColor = vec4(vec3(1.0)*lit*sunT*1.3*(.82 + .18*c), c*.95);
+}`;
+
+// Atmosfera: espalhamento simples de Rayleigh + Mie com ray-marching
+const ATMO_VS = /* glsl */`
+varying vec3 vWorldPos;
+void main(){ vec4 wp = modelMatrix*vec4(position,1.0); vWorldPos = wp.xyz; gl_Position = projectionMatrix*viewMatrix*wp; }`;
+const ATMO_FS = /* glsl */`
+uniform vec3 uCenter; uniform float uR; uniform float uRa; uniform vec3 uSunPos;
+uniform vec3 uBetaR; uniform float uBetaM; uniform float uHR; uniform float uHM; uniform vec3 uMieCol; uniform float uG; uniform float uSunI;
+varying vec3 vWorldPos;
+vec2 raySphere(vec3 ro, vec3 rd, float r){
+  float b = dot(ro, rd); float c = dot(ro, ro) - r*r; float d = b*b - c;
+  if (d < 0.) return vec2(1e9, -1e9);
+  d = sqrt(d); return vec2(-b - d, -b + d);
+}
+void main(){
+  vec3 ro = cameraPosition - uCenter;
+  vec3 rd = normalize(vWorldPos - cameraPosition);
+  vec2 ta = raySphere(ro, rd, uRa);
+  if (ta.x > ta.y) discard;
+  vec2 tp = raySphere(ro, rd, uR);
+  float t0 = max(ta.x, 0.), t1 = ta.y;
+  bool hit = tp.x < tp.y && tp.x > 0.;
+  if (hit) t1 = tp.x;
+  if (t1 <= t0) discard;
+  vec3 L = normalize(uSunPos - uCenter);
+  float seg = (t1 - t0) / float(STEPS);
+  vec3 sumR = vec3(0.), sumM = vec3(0.); float odR = 0., odM = 0.;
+  for (int i = 0; i < STEPS; i++) {
+    vec3 x = ro + rd*(t0 + seg*(float(i) + .5));
+    float hgt = max(length(x) - uR, 0.);
+    float dR = exp(-hgt/uHR)*seg, dM = exp(-hgt/uHM)*seg;
+    odR += dR; odM += dM;
+    vec2 tlp = raySphere(x, L, uR);
+    if (tlp.x < tlp.y && tlp.x > 0.) continue;      // ponto na sombra do planeta
+    float sl = raySphere(x, L, uRa).y / float(LSTEPS);
+    float lR = 0., lM = 0.;
+    for (int j = 0; j < LSTEPS; j++) {
+      float hy = max(length(x + L*(sl*(float(j) + .5))) - uR, 0.);
+      lR += exp(-hy/uHR)*sl; lM += exp(-hy/uHM)*sl;
+    }
+    vec3 att = exp(-(uBetaR*(odR + lR) + uBetaM*1.1*(odM + lM)));
+    sumR += dR*att; sumM += dM*att;
+  }
+  float mu = dot(rd, L);
+  float pR = .0597*(1. + mu*mu);
+  float g2 = uG*uG;
+  float pM = .1194*((1. - g2)*(1. + mu*mu))/((2. + g2)*pow(1. + g2 - 2.*uG*mu, 1.5));
+  vec3 col = uSunI*(sumR*uBetaR*pR + sumM*uBetaM*uMieCol*pM);
+  col = 1. - exp(-col);
+  vec3 T = exp(-(uBetaR*odR + uBetaM*1.1*odM));
+  gl_FragColor = vec4(col, hit ? dot(T, vec3(.3333)) : 1.);
+}`;
+
+const RING_VS = /* glsl */`
+varying vec2 vLocal; varying vec3 vWorldPos;
+void main(){ vLocal = position.xy; vec4 wp = modelMatrix*vec4(position,1.0); vWorldPos = wp.xyz; gl_Position = projectionMatrix*viewMatrix*wp; }`;
+const RING_FS = /* glsl */`
+uniform float uMode; uniform float uOpacity; uniform float uR; uniform vec3 uSunPos; uniform vec3 uCenter; uniform vec3 uRingN;
+varying vec2 vLocal; varying vec3 vWorldPos;
+${RINGS}
+void main(){
+  float r = length(vLocal);
+  float dens = uMode < .5 ? ringDensity(r) : uranusRings(r);
+  vec3 L = normalize(uSunPos - vWorldPos);
+  vec3 V = normalize(cameraPosition - vWorldPos);
+  vec3 oc = uCenter - vWorldPos; float tt = dot(oc, L); float d2 = dot(oc, oc) - tt*tt;
+  float sh = (tt > 0. && d2 < uR*uR) ? .06 : 1.;     // sombra do planeta
+  float nl = dot(uRingN, L), nv = dot(uRingN, V);
+  float tau = dens*1.8;
+  // lado iluminado: luz refletida; lado oposto: luz transmitida (anéis finos brilham contra o Sol)
+  float I = nl*nv > 0. ? (.22 + .78*abs(nl)) : 1.3*exp(-tau)*(.3 + 3.*abs(nl));
+  float cover = 1. - exp(-tau/max(abs(nv), .1));
+  vec3 base = uMode < .5 ? ringColor(r) : pow(vec3(.55,.58,.62), vec3(2.2));
+  gl_FragColor = vec4(base*I*sh*1.3, clamp(cover*uOpacity, 0., 1.));
+}`;
+
+const RINGPTS_VS = /* glsl */`
+attribute float aR; attribute float aA; attribute float aY; attribute float aS; attribute float aC;
+uniform float uTime; uniform float uPR; uniform float uR; uniform vec3 uSunPos; uniform vec3 uCenter;
+varying float vAlpha; varying vec3 vCol;
+${RINGS}
+void main(){
+  float ang = aA + uTime*.12/pow(aR, 1.5);           // rotação kepleriana
+  vec3 p = vec3(cos(ang)*aR, aY, sin(ang)*aR) * uR;
+  vec4 wp = modelMatrix*vec4(p, 1.0);
+  vec3 L = normalize(uSunPos - wp.xyz);
+  vec3 V = normalize(cameraPosition - wp.xyz);
+  vec3 oc = uCenter - wp.xyz; float tt = dot(oc, L); float d2 = dot(oc, oc) - tt*tt;
+  float sh = (tt > 0. && d2 < uR*uR) ? .06 : 1.;
+  vec3 Nr = normalize(mat3(modelMatrix)*vec3(0., 1., 0.));
+  float nl = dot(Nr, L), nv = dot(Nr, V);
+  float I = nl*nv > 0. ? (.25 + .75*abs(nl)) : 1.2*exp(-ringDensity(aR)*1.8)*(.3 + 3.*abs(nl));
+  vCol = ringColor(aR) * (.8 + .4*aC) * I * sh * 1.3;
+  vec4 mv = viewMatrix*wp;
+  gl_Position = projectionMatrix*mv;
+  float s = aS*uPR*60.0/max(-mv.z, 1.0);
+  gl_PointSize = clamp(s, uPR*.8, 5.0*uPR);
+  vAlpha = (.4 + .45*aC) * clamp(s/uPR, .35, 1.0);
+}`;
+const RINGPTS_FS = /* glsl */`
+varying float vAlpha; varying vec3 vCol;
+void main(){ vec2 c = gl_PointCoord - .5; float d = dot(c,c); if (d > .25) discard; gl_FragColor = vec4(vCol, vAlpha*(1.0 - d*4.0)); }`;
+
+const STAR_VS = /* glsl */`
+attribute float aSize; attribute float aPhase; attribute vec3 aColor;
+uniform float uTime; uniform float uPR; uniform float uOpacity; uniform float uTwinkle; uniform float uAtten;
+varying vec3 vColor; varying float vAlpha;
+void main(){
+  vec4 mv = modelViewMatrix*vec4(position,1.0);
+  gl_Position = projectionMatrix*mv;
+  float tw = .55 + .45*sin(uTime*(.6 + aPhase*2.4) + aPhase*50.0);
+  float size = aSize;
+  float a = 1.0;
+  if (uAtten > .5) { size *= 240.0/max(-mv.z, 1.0); a *= smoothstep(6.0, 40.0, -mv.z); }
+  a *= clamp(size, 0.0, 1.0);
+  gl_PointSize = clamp(size, 1.0, 6.0) * uPR;
+  vAlpha = mix(1.0, tw, uTwinkle) * uOpacity * a;
+  vColor = aColor;
+}`;
+const STAR_FS = /* glsl */`
+varying vec3 vColor; varying float vAlpha;
+void main(){ float d = length(gl_PointCoord - .5); float a = 1.0 - smoothstep(0.0, .5, d); a *= a; gl_FragColor = vec4(vColor*a*vAlpha, 1.0); }`;
+
+const GAL_VS = /* glsl */`
+attribute float aSize; attribute vec3 aColor;
+uniform float uPR; uniform float uOpacity;
+varying vec3 vColor; varying float vAlpha;
+void main(){
+  vec4 mv = modelViewMatrix*vec4(position,1.0);
+  gl_Position = projectionMatrix*mv;
+  float dist = max(-mv.z, 1.0);
+  float s = aSize*pow(16000.0/dist, .6);
+  gl_PointSize = clamp(s, 1.0, 9.0)*uPR;
+  vAlpha = uOpacity * smoothstep(250.0, 1400.0, dist) * clamp(s, 0.0, 1.0);
+  vColor = aColor;
+}`;
+
+/* =====================================================================
+   THREE.JS
+   ===================================================================== */
+let renderer, composer, bloom, scene, camera;
+const U = {
+  time: { value: 0 },
+  sun: { value: new THREE.Vector3(0, 0, 0) },
+  pr: { value: 1 },
+};
+const planetObjs = [];   // { b, spinMesh, clouds }
+let sunMesh, starsFar, starsNear, galaxy, orbits = [];
+const GAL_CENTER = new THREE.Vector3(-2600, 0, -1700);
+const GAL_R = 6000;
+const OVERVIEW_DIR = new THREE.Vector3(0, 0.64, 0.77).normalize();
+let webglOK = true;
+
+function glowTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d');
+  const grd = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+  grd.addColorStop(0, 'rgba(255,255,255,1)');
+  grd.addColorStop(0.22, 'rgba(255,255,255,.6)');
+  grd.addColorStop(0.45, 'rgba(255,255,255,.18)');
+  grd.addColorStop(0.7, 'rgba(255,255,255,.05)');
+  grd.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grd; g.fillRect(0, 0, 256, 256);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+function gauss() { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+
+function makePoints(positions, colors, sizes, phases, material) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  g.setAttribute('aColor', new THREE.BufferAttribute(colors, 3));
+  g.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+  if (phases) g.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1));
+  const pts = new THREE.Points(g, material);
+  pts.frustumCulled = false;
+  return pts;
+}
+
+function starMaterial(atten) {
+  return new THREE.ShaderMaterial({
+    vertexShader: STAR_VS, fragmentShader: STAR_FS,
+    uniforms: { uTime: U.time, uPR: U.pr, uOpacity: { value: 1 }, uTwinkle: { value: reduce ? 0 : 1 }, uAtten: { value: atten ? 1 : 0 } },
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  });
+}
+
+function starColor(out, i) {
+  const r = Math.random();
+  const c = r < 0.12 ? [0.65, 0.75, 1] : r < 0.22 ? [1, 0.82, 0.62] : [1, 0.97, 0.93];
+  const b = 0.35 + Math.pow(Math.random(), 3) * 0.9;
+  out[i * 3] = c[0] * b; out[i * 3 + 1] = c[1] * b; out[i * 3 + 2] = c[2] * b;
+}
+
+function buildStars() {
+  // Camada distante (esfera enorme, tamanho fixo em pixels)
+  const nFar = isMobile ? 2600 : 7000;
+  let pos = new Float32Array(nFar * 3), col = new Float32Array(nFar * 3), size = new Float32Array(nFar), ph = new Float32Array(nFar);
+  for (let i = 0; i < nFar; i++) {
+    const u = Math.random() * 2 - 1, th = Math.random() * Math.PI * 2, s = Math.sqrt(1 - u * u), R = 40000;
+    pos[i * 3] = Math.cos(th) * s * R; pos[i * 3 + 1] = u * R; pos[i * 3 + 2] = Math.sin(th) * s * R;
+    starColor(col, i); size[i] = 0.8 + Math.pow(Math.random(), 4) * 2.2; ph[i] = Math.random();
+  }
+  starsFar = makePoints(pos, col, size, ph, starMaterial(false));
+  scene.add(starsFar);
+
+  // Camada próxima (gera parallax enquanto a câmera viaja)
+  const nNear = isMobile ? 900 : 2400;
+  pos = new Float32Array(nNear * 3); col = new Float32Array(nNear * 3); size = new Float32Array(nNear); ph = new Float32Array(nNear);
+  for (let i = 0; i < nNear; i++) {
+    pos[i * 3] = -500 + Math.random() * 1700;
+    pos[i * 3 + 1] = (Math.random() * 2 - 1) * 450;
+    pos[i * 3 + 2] = -800 + Math.random() * 1500;
+    starColor(col, i); size[i] = 0.8 + Math.random() * 1.6; ph[i] = Math.random();
+  }
+  starsNear = makePoints(pos, col, size, ph, starMaterial(true));
+  scene.add(starsNear);
+}
+
+function buildGalaxy() {
+  const n = isMobile ? 32000 : 90000;
+  const pos = new Float32Array(n * 3), col = new Float32Array(n * 3), size = new Float32Array(n);
+  const core = [1.0, 0.78, 0.52], arm = [0.55, 0.66, 1.0], pink = [1.0, 0.45, 0.62];
+  for (let i = 0; i < n; i++) {
+    let x, y, z, c, b;
+    const kind = Math.random();
+    if (kind < 0.2) { // bojo central
+      const r = Math.abs(gauss()) * GAL_R * 0.11, th = Math.random() * Math.PI * 2;
+      x = Math.cos(th) * r; z = Math.sin(th) * r * 0.8; y = gauss() * GAL_R * 0.045 * Math.exp(-r / (GAL_R * 0.2));
+      c = core; b = 0.45 + Math.random() * 0.5;
+    } else if (kind < 0.82) { // braços espirais (2 principais + 2 secundários)
+      const a = i % 4, major = a % 2 === 0;
+      const r = GAL_R * (0.08 + Math.pow(Math.random(), 0.85) * 0.92);
+      const th = a * Math.PI / 2 + Math.log(r / (GAL_R * 0.08)) * 1.55 + gauss() * (major ? 0.22 : 0.32) * (1.15 - r / GAL_R);
+      const jit = gauss() * GAL_R * 0.025;
+      x = Math.cos(th) * r + jit; z = Math.sin(th) * r + gauss() * GAL_R * 0.025; y = gauss() * GAL_R * 0.01;
+      const f = r / GAL_R;
+      c = [lerp(core[0], arm[0], f), lerp(core[1], arm[1], f), lerp(core[2], arm[2], f)];
+      if (Math.random() < 0.04) c = pink;
+      b = (major ? 0.55 : 0.35) * (0.4 + Math.random() * 0.8);
+    } else { // disco difuso
+      const r = GAL_R * Math.sqrt(Math.random()), th = Math.random() * Math.PI * 2;
+      x = Math.cos(th) * r; z = Math.sin(th) * r; y = gauss() * GAL_R * 0.015;
+      c = [0.8, 0.8, 0.95]; b = 0.18 + Math.random() * 0.25;
+    }
+    pos[i * 3] = x; pos[i * 3 + 1] = y; pos[i * 3 + 2] = z;
+    col[i * 3] = c[0] * b; col[i * 3 + 1] = c[1] * b; col[i * 3 + 2] = c[2] * b;
+    size[i] = 1.2 + Math.pow(Math.random(), 3) * 2.6;
+  }
+  const mat = new THREE.ShaderMaterial({
+    vertexShader: GAL_VS, fragmentShader: STAR_FS,
+    uniforms: { uPR: U.pr, uOpacity: { value: 0 } },
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  });
+  galaxy = makePoints(pos, col, size, null, mat);
+  galaxy.position.copy(GAL_CENTER);
+  scene.add(galaxy);
+}
+
+function buildOrbits() {
+  PLANETS.forEach(b => {
+    const r = Math.hypot(b.pos.x, b.pos.z), a0 = Math.atan2(b.pos.z, b.pos.x);
+    const pts = [];
+    for (let i = 0; i <= 256; i++) { const a = a0 + i / 256 * Math.PI * 2; pts.push(new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r)); }
+    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+      new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false }));
+    line.visible = false;
+    scene.add(line); orbits.push(line);
+  });
+}
+
+function buildSun() {
+  const b = BODIES[0];
+  const geo = new THREE.SphereGeometry(1, 96, 64);
+  sunMesh = new THREE.Mesh(geo, new THREE.ShaderMaterial({ vertexShader: SPHERE_VS, fragmentShader: SUN_FS, uniforms: { uTime: U.time } }));
+  sunMesh.scale.setScalar(b.r);
+  const tilt = new THREE.Group(); tilt.rotation.z = THREE.MathUtils.degToRad(b.tilt); tilt.add(sunMesh);
+  scene.add(tilt);
+  const tex = glowTexture();
+  const mk = (scale, color, op) => {
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color, transparent: true, opacity: op, depthWrite: false, blending: THREE.AdditiveBlending }));
+    s.scale.setScalar(b.r * scale); scene.add(s); return s;
+  };
+  mk(4.6, 0xff8a2a, 0.55);
+  mk(12, 0xff6a10, 0.14);
+  planetObjs.push({ b, spinMesh: sunMesh });
+}
+
+function buildPlanet(b) {
+  const seg = isMobile ? [96, 64] : [160, 112];
+  const defines = { OCT: isMobile ? 4 : 5 };
+  const group = new THREE.Group(); group.position.copy(b.pos);
+  const tilt = new THREE.Group(); tilt.rotation.z = THREE.MathUtils.degToRad(b.tilt);
+  group.add(tilt); scene.add(group);
+  const ringN = new THREE.Vector3(0, 1, 0).applyEuler(tilt.rotation);
+  const tauSun = { value: new THREE.Vector3(...(b.tauSun || [0, 0, 0])) };
+
+  const mat = new THREE.ShaderMaterial({
+    defines, vertexShader: SPHERE_VS, fragmentShader: PLANET_FS(SURFACES[b.surface]),
+    uniforms: {
+      uTime: U.time, uSunPos: U.sun, uTauSun: tauSun, uShade: { value: b.shade || 0 },
+      uCenter: { value: b.pos }, uRingN: { value: ringN }, uR: { value: b.r },
+      uRing: { value: b.rings === 'saturn' ? 1 : 0 },
+    },
+  });
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(1, seg[0], seg[1]), mat);
+  mesh.scale.setScalar(b.r);
+  tilt.add(mesh);
+  const obj = { b, spinMesh: mesh };
+
+  if (b.clouds) {
+    const cm = new THREE.Mesh(new THREE.SphereGeometry(1, seg[0], seg[1]), new THREE.ShaderMaterial({
+      defines, vertexShader: SPHERE_VS, fragmentShader: CLOUD_FS, uniforms: { uTime: U.time, uSunPos: U.sun, uTauSun: tauSun },
+      transparent: true, depthWrite: false,
+    }));
+    cm.scale.setScalar(b.r * 1.012); cm.renderOrder = 1;
+    tilt.add(cm); obj.clouds = cm;
+  }
+  if (b.atm) {
+    const A = b.atm, th = b.r * A.th, Ra = b.r + th, Hr = th * A.hr, Hm = th * A.hm;
+    const am = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 48), new THREE.ShaderMaterial({
+      defines: { STEPS: isMobile ? 7 : 12, LSTEPS: isMobile ? 3 : 4 },
+      vertexShader: ATMO_VS, fragmentShader: ATMO_FS,
+      uniforms: {
+        uCenter: { value: b.pos }, uR: { value: b.r }, uRa: { value: Ra }, uSunPos: U.sun,
+        uBetaR: { value: new THREE.Vector3(...A.tauR).divideScalar(Hr) }, uBetaM: { value: A.tauM / Hm },
+        uHR: { value: Hr }, uHM: { value: Hm }, uMieCol: { value: new THREE.Vector3(...A.mie) }, uG: { value: A.g }, uSunI: { value: A.sun },
+      },
+      // resultado = luz espalhada + fundo × transmitância
+      transparent: true, depthWrite: false,
+      blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: THREE.OneFactor, blendDst: THREE.SrcAlphaFactor,
+    }));
+    am.scale.setScalar(Ra); am.renderOrder = 2;
+    group.add(am);
+  }
+  if (b.rings) {
+    const sat = b.rings === 'saturn';
+    const rm = new THREE.Mesh(new THREE.RingGeometry(sat ? 1.2 : 1.55, sat ? 2.3 : 2.08, 512, 1), new THREE.ShaderMaterial({
+      vertexShader: RING_VS, fragmentShader: RING_FS,
+      uniforms: { uMode: { value: sat ? 0 : 1 }, uOpacity: { value: sat ? 0.8 : 0.06 }, uR: { value: b.r }, uSunPos: U.sun, uCenter: { value: b.pos }, uRingN: { value: ringN } },
+      side: THREE.DoubleSide, transparent: true, depthWrite: false,
+    }));
+    rm.rotation.x = -Math.PI / 2; rm.scale.setScalar(b.r); rm.renderOrder = 3;
+    tilt.add(rm);
+    if (sat) { const pts = buildRingParticles(b); pts.renderOrder = 4; tilt.add(pts); }
+  }
+  planetObjs.push(obj);
+}
+
+function ringDensJS(r) {
+  let d = 0;
+  if (r > 1.24 && r < 1.527) d = 0.15;
+  else if (r >= 1.527 && r < 1.951) d = 0.55 + 0.45 * Math.min(1, (r - 1.527) / 0.2);
+  else if (r > 2.027 && r < 2.269) d = 0.5;
+  if (Math.abs(r - 2.216) < 0.007) d *= 0.1;
+  return d * (0.85 + 0.15 * Math.sin(r * 260));
+}
+
+function buildRingParticles(b) {
+  const n = isMobile ? 26000 : 80000;
+  const aR = new Float32Array(n), aA = new Float32Array(n), aY = new Float32Array(n), aS = new Float32Array(n), aC = new Float32Array(n);
+  let i = 0;
+  while (i < n) {
+    const r = 1.22 + Math.random() * 1.07;
+    if (Math.random() > ringDensJS(r)) continue;
+    aR[i] = r; aA[i] = Math.random() * Math.PI * 2; aY[i] = gauss() * 0.004;
+    aS[i] = 0.5 + Math.pow(Math.random(), 3) * 1.6; aC[i] = Math.random();
+    i++;
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  g.setAttribute('aR', new THREE.BufferAttribute(aR, 1));
+  g.setAttribute('aA', new THREE.BufferAttribute(aA, 1));
+  g.setAttribute('aY', new THREE.BufferAttribute(aY, 1));
+  g.setAttribute('aS', new THREE.BufferAttribute(aS, 1));
+  g.setAttribute('aC', new THREE.BufferAttribute(aC, 1));
+  const pts = new THREE.Points(g, new THREE.ShaderMaterial({
+    vertexShader: RINGPTS_VS, fragmentShader: RINGPTS_FS,
+    uniforms: { uTime: U.time, uPR: U.pr, uR: { value: b.r }, uSunPos: U.sun, uCenter: { value: b.pos } },
+    transparent: true, depthWrite: false,
+  }));
+  pts.frustumCulled = false;
+  return pts;
+}
+
+function initThree() {
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas: $('#webgl'), antialias: !isMobile, powerPreference: 'high-performance' });
+  } catch (e) { webglOK = false; console.warn('WebGL indisponível', e); return; }
+  const pr = Math.min(devicePixelRatio || 1, isMobile ? 1.75 : 2);
+  U.pr.value = pr;
+  renderer.setPixelRatio(pr);
+  renderer.setSize(innerWidth, innerHeight);
+  // #05060a final: a cor de limpeza passa por codificação sRGB duas vezes (limpeza do alvo do
+  // composer + OutputPass), por isso é informada já "pré-decodificada".
+  const srgbToLin = (c) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  renderer.setClearColor(new THREE.Color(...[5, 6, 10].map(v => srgbToLin(srgbToLin(v / 255)))), 1);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.NoToneMapping;
+
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.5, 90000);
+
+  composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.85, 0.55, 0.92);
+  composer.addPass(bloom);
+  composer.addPass(new OutputPass());
+}
+
+function buildScene() {
+  buildStars();
+  buildSun();
+  PLANETS.forEach(buildPlanet);
+  buildOrbits();
+  buildGalaxy();
+}
+
+/* =====================================================================
+   CÂMERA guiada pela rolagem
+   ===================================================================== */
+const introFly = { k: reduce ? 0 : 1 };
+const camA = { pos: new THREE.Vector3(), look: new THREE.Vector3(), ox: 0, oy: 0 };
+const camB = { pos: new THREE.Vector3(), look: new THREE.Vector3(), ox: 0, oy: 0 };
+const camLook = new THREE.Vector3();
+let portrait = innerWidth < innerHeight;
+const aspectMul = () => portrait ? clamp(1 / ((innerWidth / innerHeight) * 1.25), 1, 2.2) : 1;
+
+function camFor(i, p, o) {
+  const S = SECS[i], m = aspectMul();
+  if (S.type === 'intro') {
+    const e = easeIO(p);
+    o.look.set(40, 0, 0);
+    o.pos.set(-60 + 30 * e, 46 - 18 * e + introFly.k * 260, (560 - 150 * e) * m + introFly.k * 1400);
+    o.ox = 0; o.oy = 0;
+  } else if (S.type === 'body') {
+    const b = S.body, e = easeIO(p);
+    const k = lerp(b.k[0], b.k[1], e) * b.r * m;
+    const a = lerp(b.a[0], b.a[1], p);
+    o.pos.set(Math.sin(a) * Math.cos(b.el) * k, Math.sin(b.el) * k, Math.cos(a) * Math.cos(b.el) * k).add(b.pos);
+    o.look.copy(b.pos);
+    o.ox = 0; o.oy = portrait ? 0.17 : 0.06;
+  } else if (S.type === 'scale') {
+    o.look.copy(SYS_CENTER);
+    o.pos.copy(SYS_CENTER).addScaledVector(OVERVIEW_DIR, 810 * (1 + 0.12 * p) * m);
+    o.ox = 0; o.oy = 0;
+  } else {
+    const e = easeIO(p);
+    o.look.copy(SYS_CENTER).lerp(GAL_CENTER, e);
+    o.pos.copy(o.look).addScaledVector(OVERVIEW_DIR, (907 + (16500 - 907) * Math.pow(e, 1.5)) * m);
+    o.ox = 0; o.oy = 0;
+  }
+}
+
+function cameraAt(s) {
+  const i = Math.min(Math.floor(s), NS - 1), p = clamp(s - i, 0, 1);
+  camFor(i, p, camA);
+  if (i < NS - 1) {
+    const b = smooth(0.55, 1, p);
+    if (b > 0) {
+      camFor(i + 1, 0, camB);
+      const lift = Math.sin(b * Math.PI) * camA.pos.distanceTo(camB.pos) * 0.12;
+      camA.pos.lerp(camB.pos, b); camA.pos.y += lift;
+      camA.look.lerp(camB.look, b);
+      camA.ox = lerp(camA.ox, camB.ox, b); camA.oy = lerp(camA.oy, camB.oy, b);
+    }
+  }
+  return camA;
+}
+
+/* =====================================================================
+   ROLAGEM → índice contínuo de seção (s)
+   ===================================================================== */
+let tops = [], maxScroll = 1;
+function measure() {
+  const y = window.scrollY;
+  tops = secEls.map(el => el.getBoundingClientRect().top + y);
+  maxScroll = Math.max(1, document.documentElement.scrollHeight - innerHeight);
+}
+function sFromScroll(y) {
+  if (!tops.length) return 0;
+  for (let i = NS - 1; i >= 0; i--) {
+    if (y >= tops[i] || i === 0) {
+      const len = i < NS - 1 ? tops[i + 1] - tops[i] : Math.max(1, maxScroll - tops[i]);
+      return i + clamp((y - tops[i]) / len, 0, 1);
+    }
+  }
+  return 0;
+}
+
+/* =====================================================================
+   LENIS (rolagem suave)
+   ===================================================================== */
+let lenis = null;
+if (!reduce && window.Lenis) {
+  lenis = new window.Lenis({ duration: 1.35, easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)), smoothWheel: true, wheelMultiplier: 0.9, touchMultiplier: 1.3 });
+  lenis.on('scroll', ScrollTrigger.update);
+  gsap.ticker.add(t => lenis.raf(t * 1000));
+  gsap.ticker.lagSmoothing(0);
+  lenis.stop();
+}
+document.documentElement.classList.add('is-locked');
+window.scrollTo(0, 0);
+
+function goTo(i) {
+  measure();
+  const y = i === 0 ? 0 : tops[i] + 2;
+  if (lenis) lenis.scrollTo(y, { duration: i === 0 ? 3.6 : 2.4, easing: easeIO });
+  else window.scrollTo({ top: y, behavior: reduce ? 'auto' : 'smooth' });
+}
+
+/* =====================================================================
+   INTERFACE: menu, cursor, mouse
+   ===================================================================== */
+const menuBtn = $('.menu-btn'), menuEl = $('#menu');
+const setMenu = (open) => { menuEl.classList.toggle('open', open); menuBtn.setAttribute('aria-expanded', open); };
+menuBtn.addEventListener('click', () => setMenu(!menuEl.classList.contains('open')));
+addEventListener('keydown', e => { if (e.key === 'Escape') setMenu(false); });
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-goto]');
+  if (!t) return;
+  e.preventDefault(); setMenu(false); goTo(+t.dataset.goto);
+});
+
+const mouse = { x: 0, y: 0, sx: 0, sy: 0, px: innerWidth / 2, py: innerHeight / 2, cx: innerWidth / 2, cy: innerHeight / 2 };
+const cursorEl = $('.cursor'), dotEl = $('.cursor-dot');
+const useCursor = !isTouch && !reduce && matchMedia('(hover: hover)').matches;
+if (useCursor) document.body.classList.add('has-cursor');
+addEventListener('pointermove', e => {
+  mouse.x = e.clientX / innerWidth * 2 - 1; mouse.y = e.clientY / innerHeight * 2 - 1;
+  mouse.px = e.clientX; mouse.py = e.clientY;
+  if (useCursor) dotEl.style.transform = `translate3d(${e.clientX}px,${e.clientY}px,0)`;
+}, { passive: true });
+document.addEventListener('pointerover', e => { if (e.target.closest('a,button')) cursorEl.classList.add('is-hover'); });
+document.addEventListener('pointerout', e => { if (e.target.closest('a,button')) cursorEl.classList.remove('is-hover'); });
+
+/* =====================================================================
+   ANIMAÇÕES DE TEXTO E CONTADORES
+   ===================================================================== */
+function countUp(nums) {
+  nums.forEach((el, k) => {
+    const v = +el.dataset.v, d = +el.dataset.d, o = { v: 0 };
+    if (el._tw) el._tw.kill();
+    el._tw = gsap.to(o, { v, duration: 2.2, delay: k * 0.08, ease: 'power3.out', onUpdate: () => { el.textContent = fmt(o.v, d); } });
+  });
+}
+function resetCount(nums) { nums.forEach(el => { if (el._tw) el._tw.kill(); el.textContent = fmt(0, +el.dataset.d); }); }
+
+function setupScrollAnimations() {
+  secEls.forEach((sec, i) => {
+    const inner = $('.inner', sec);
+    const nums = $$('.num', sec);
+    if (nums.length && !reduce) {
+      ScrollTrigger.create({ trigger: sec, start: 'top 40%', onEnter: () => countUp(nums), onLeaveBack: () => resetCount(nums) });
+    }
+    if (reduce) return;
+
+    // Entrada (ligada à rolagem)
+    if (i > 0) {
+      const chars = $$('.ch > span, .w > span', sec);
+      const reveals = $$('.reveal', sec);
+      const sheet = $('.sheet', sec);
+      const isOutro = sec.classList.contains('outro');
+      const tl = gsap.timeline({ scrollTrigger: {
+        trigger: sec, scrub: 1.2,
+        start: isOutro ? 'top -5%' : 'top 60%',
+        end: isOutro ? 'top -70%' : 'top 5%',
+      } });
+      if (chars.length) tl.from(chars, { yPercent: 118, rotate: 3, stagger: 0.045, duration: 0.6, ease: 'power3.out' }, 0);
+      if (reveals.length) tl.fromTo(reveals, { autoAlpha: 0, y: 40, filter: 'blur(10px)' }, { autoAlpha: 1, y: 0, filter: 'blur(0px)', stagger: 0.08, duration: 0.5, ease: 'power2.out' }, 0.1);
+      if (sheet) {
+        tl.fromTo(sheet, { clipPath: 'inset(0% 0% 100% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 0.5, ease: 'power2.inOut' }, 0.12)
+          .fromTo($$('.cell, h3', sheet), { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, stagger: 0.04, duration: 0.35 }, 0.25);
+      }
+      if (sec.classList.contains('scale')) {
+        tl.fromTo($('.sunarc', sec), { xPercent: -12, autoAlpha: 0 }, { xPercent: 0, autoAlpha: 1, duration: 0.6, ease: 'power2.out' }, 0.2)
+          .fromTo($$('.sitem', sec), { autoAlpha: 0, scale: 0.2, y: 30 }, { autoAlpha: 1, scale: 1, y: 0, stagger: 0.16, duration: 0.5, ease: 'back.out(1.4)' }, 0.45)
+          .fromTo($('.sun-label', sec), { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3 }, 0.6);
+      }
+    }
+    // Saída
+    if (i < NS - 1) {
+      gsap.timeline({ scrollTrigger: { trigger: sec, start: 'bottom 100%', end: 'bottom 55%', scrub: 1 } })
+        .fromTo(inner, { autoAlpha: 1, y: 0, filter: 'blur(0px)' }, { autoAlpha: 0, y: -60, filter: 'blur(12px)', ease: 'power1.in' });
+    }
+  });
+}
+
+/* =====================================================================
+   LOOP
+   ===================================================================== */
+let sCur = 0, accentKey = '', navIdx = -1;
+const rootStyle = document.documentElement.style;
+const nowIdx = $('.now-idx'), nowName = $('.now-name'), progFill = $('.progress-fill');
+const hereEl = $('.here');
+const tmpV = new THREE.Vector3();
+
+function updateUI(s) {
+  const i = Math.min(Math.floor(s), NS - 1), f = s - i;
+  const b = i < NS - 1 ? smooth(0.55, 1, f) : 0;
+  const c0 = SECS[i].rgb, c1 = SECS[Math.min(i + 1, NS - 1)].rgb;
+  const rgb = c0.map((v, k) => Math.round(lerp(v, c1[k], b)));
+  const key = rgb.join(',');
+  if (key !== accentKey) { accentKey = key; rootStyle.setProperty('--accent', `rgb(${key})`); }
+
+  progFill.style.transform = `scaleX(${clamp(s / (NS - 1), 0, 1)})`;
+  const cur = clamp(Math.round(s), 0, NS - 1);
+  if (cur !== navIdx) {
+    navIdx = cur;
+    nowIdx.textContent = SECS[cur].idx; nowName.textContent = SECS[cur].name;
+    ticks.forEach((t, k) => t.classList.toggle('on', k <= cur));
+  }
+}
+
+function frame(time, deltaMs) {
+  const dt = Math.min(deltaMs / 1000, 0.05);
+  const sTarget = sFromScroll(window.scrollY);
+  sCur = reduce ? sTarget : lerp(sCur, sTarget, 1 - Math.pow(0.0009, dt));
+  if (Math.abs(sCur - sTarget) < 1e-4) sCur = sTarget;
+  updateUI(sCur);
+
+  // cursor com atraso
+  if (useCursor) {
+    mouse.cx = lerp(mouse.cx, mouse.px, 1 - Math.pow(0.0004, dt));
+    mouse.cy = lerp(mouse.cy, mouse.py, 1 - Math.pow(0.0004, dt));
+    cursorEl.style.transform = `translate3d(${mouse.cx}px,${mouse.cy}px,0)`;
+  }
+  if (!webglOK || !galaxy) return;
+
+  U.time.value += dt * (reduce ? 0.15 : 1);
+  planetObjs.forEach(o => {
+    o.spinMesh.rotation.y += dt * o.b.spin * (reduce ? 0.2 : 1);
+    if (o.clouds) o.clouds.rotation.y = o.spinMesh.rotation.y; // a deriva das nuvens fica no shader (sombras alinhadas)
+  });
+
+  // câmera
+  const c = cameraAt(sCur);
+  camera.position.copy(c.pos);
+  camera.lookAt(c.look);
+  if (!reduce) {
+    mouse.sx = lerp(mouse.sx, mouse.x, 1 - Math.pow(0.02, dt));
+    mouse.sy = lerp(mouse.sy, mouse.y, 1 - Math.pow(0.02, dt));
+    camera.rotateY(-mouse.sx * 0.035);
+    camera.rotateX(-mouse.sy * 0.025);
+  }
+  const w = innerWidth, h = innerHeight;
+  camera.setViewOffset(w, h, -c.ox * w, c.oy * h, w, h);
+
+  // visibilidade das camadas
+  const gal = smooth(9.7, 10.75, sCur);
+  galaxy.material.uniforms.uOpacity.value = gal;
+  galaxy.visible = gal > 0.001;
+  galaxy.rotation.y = U.time.value * 0.004;
+  starsNear.material.uniforms.uOpacity.value = 1 - smooth(10.1, 10.6, sCur);
+  starsNear.visible = sCur < 10.6;
+  starsFar.material.uniforms.uOpacity.value = 1 - 0.5 * smooth(10.3, 11, sCur);
+  const orbOp = smooth(9.4, 10.1, sCur) * (1 - smooth(10.45, 10.8, sCur)) * 0.16;
+  orbits.forEach(l => { l.visible = orbOp > 0.001; l.material.opacity = orbOp; });
+  bloom.strength = lerp(0.85, 1.05, gal);
+
+  // marcador "Você está aqui"
+  const hereOp = smooth(10.5, 10.7, sCur) * (1 - smooth(11.12, 11.3, sCur));
+  if (hereOp > 0.001) {
+    tmpV.set(0, 0, 0).project(camera);
+    hereEl.style.transform = `translate3d(${(tmpV.x * 0.5 + 0.5) * w}px,${(-tmpV.y * 0.5 + 0.5) * h}px,0)`;
+  }
+  hereEl.style.opacity = hereOp;
+
+  composer.render();
+}
+
+/* =====================================================================
+   REDIMENSIONAMENTO
+   ===================================================================== */
+let lastW = innerWidth, lastH = innerHeight;
+function onResize() {
+  const w = innerWidth, h = innerHeight;
+  // no celular, ignora o "pulo" da barra de endereço
+  if (isTouch && w === lastW && Math.abs(h - lastH) < 160) return;
+  lastW = w; lastH = h;
+  portrait = w < h;
+  if (webglOK) {
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+    renderer.setSize(w, h); composer.setSize(w, h);
+  }
+  measure();
+}
+addEventListener('resize', onResize);
+ScrollTrigger.addEventListener('refresh', measure);
+
+/* =====================================================================
+   CARREGAMENTO
+   ===================================================================== */
+const loaderEl = $('.loader'), lcNum = $('.lc-num'), lcBar = $('.loader-bar i');
+const ld = { v: 0 };
+const nextFrame = () => new Promise(r => requestAnimationFrame(() => r()));
+const wait = (ms) => new Promise(r => setTimeout(r, ms));
+function progressTo(v, dur = 0.9) {
+  return new Promise(res => gsap.to(ld, { v, duration: reduce ? 0.01 : dur, ease: 'power2.out', overwrite: true,
+    onUpdate: () => { lcNum.textContent = String(Math.round(ld.v)).padStart(3, '0'); lcBar.style.transform = `scaleX(${ld.v / 100})`; },
+    onComplete: res }));
+}
+
+async function boot() {
+  window.__solarReady = true;
+  const t0 = performance.now();
+  progressTo(18);
+  await Promise.race([document.fonts ? document.fonts.ready : Promise.resolve(), wait(2500)]);
+  progressTo(42); await nextFrame();
+  initThree();
+  if (webglOK) {
+    buildScene(); progressTo(68); await nextFrame();
+    measure(); cameraAt(0); camera.position.copy(camA.pos); camera.lookAt(camA.look);
+    renderer.compile(scene, camera);
+    composer.render();
+  }
+  progressTo(90); await nextFrame();
+  const minT = reduce ? 0 : 1800;
+  await wait(Math.max(0, minT - (performance.now() - t0)));
+  await progressTo(100, 0.6);
+  reveal();
+}
+
+function reveal() {
+  const introChars = $$('.intro .ch > span');
+  const unlock = () => {
+    document.documentElement.classList.remove('is-locked');
+    if (lenis) lenis.start();
+    measure();
+    setupScrollAnimations();
+    ScrollTrigger.refresh();
+  };
+  const finish = () => { loaderEl.style.display = 'none'; };
+  if (reduce) { unlock(); finish(); return; }
+  gsap.set(introChars, { yPercent: 118 });
+  gsap.set('.intro .reveal, .intro .corner', { autoAlpha: 0 });
+  gsap.set('.nav', { autoAlpha: 0, y: -16 });
+  const tl = gsap.timeline({ onComplete: finish });
+  tl.to('.loader-top, .loader-bottom', { autoAlpha: 0, y: -20, duration: 0.6, ease: 'power2.in' })
+    .to(loaderEl, { clipPath: 'inset(0% 0% 100% 0%)', duration: 1.3, ease: 'expo.inOut' }, '-=.2')
+    .to(introFly, { k: 0, duration: 3.4, ease: 'expo.out' }, '-=1.1')
+    .to(introChars, { yPercent: 0, stagger: 0.045, duration: 1.5, ease: 'expo.out' }, '<0.15')
+    .fromTo('.intro .reveal', { autoAlpha: 0, y: 30, filter: 'blur(8px)' }, { autoAlpha: 1, y: 0, filter: 'blur(0px)', stagger: 0.15, duration: 1.2, ease: 'power2.out' }, '<0.6')
+    .to('.intro .corner', { autoAlpha: 1, duration: 1.2, stagger: 0.1 }, '<')
+    .to('.nav', { autoAlpha: 1, y: 0, duration: 1, ease: 'power2.out' }, '<');
+  // libera a rolagem antes do fim da timeline
+  tl.call(unlock, null, 2.2);
+}
+
+gsap.ticker.add(frame);
+boot().catch(err => { console.error(err); loaderEl.classList.add('failed'); });
+</script>
+</body>
+</html>
