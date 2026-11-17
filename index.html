@@ -49,6 +49,8 @@ em{font-style:italic}
   0%{transform:translate(0,0)}20%{transform:translate(-6%,4%)}40%{transform:translate(5%,-7%)}
   60%{transform:translate(-3%,8%)}80%{transform:translate(7%,2%)}100%{transform:translate(0,0)}}
 
+.low-power .grain{display:none}
+
 /* ---------- Cursor ---------- */
 .cursor,.cursor-dot{position:fixed;left:0;top:0;z-index:90;pointer-events:none;border-radius:50%;opacity:0;transition:opacity .4s}
 .has-cursor .cursor,.has-cursor .cursor-dot{opacity:1}
@@ -367,6 +369,15 @@ gsap.registerPlugin(ScrollTrigger);
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const isTouch = matchMedia('(pointer: coarse)').matches;
 const isMobile = isTouch || Math.min(innerWidth, innerHeight) < 600;
+// A largura da tela não indica a potência de um PC com vídeo integrado.
+const lowPower = isMobile || reduce || (navigator.hardwareConcurrency || 4) <= 4
+  || (navigator.deviceMemory !== undefined && navigator.deviceMemory <= 4);
+const quality = {
+  pixelRatio: lowPower ? 1 : 1.5,
+  galaxy: lowPower ? 18000 : 40000,
+  rings: lowPower ? 12000 : 30000,
+};
+if (lowPower) document.documentElement.classList.add('low-power');
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -1187,7 +1198,7 @@ function starColor(out, i) {
 
 function buildStars() {
   // Camada distante (esfera enorme, tamanho fixo em pixels)
-  const nFar = isMobile ? 2600 : 7000;
+  const nFar = lowPower ? 1800 : 4000;
   let pos = new Float32Array(nFar * 3), col = new Float32Array(nFar * 3), size = new Float32Array(nFar), ph = new Float32Array(nFar);
   for (let i = 0; i < nFar; i++) {
     const u = Math.random() * 2 - 1, th = Math.random() * Math.PI * 2, s = Math.sqrt(1 - u * u), R = 40000;
@@ -1198,7 +1209,7 @@ function buildStars() {
   scene.add(starsFar);
 
   // Camada próxima (gera parallax enquanto a câmera viaja)
-  const nNear = isMobile ? 900 : 2400;
+  const nNear = lowPower ? 600 : 1400;
   pos = new Float32Array(nNear * 3); col = new Float32Array(nNear * 3); size = new Float32Array(nNear); ph = new Float32Array(nNear);
   for (let i = 0; i < nNear; i++) {
     pos[i * 3] = -500 + Math.random() * 1700;
@@ -1211,7 +1222,7 @@ function buildStars() {
 }
 
 function buildGalaxy() {
-  const n = isMobile ? 32000 : 90000;
+  const n = quality.galaxy;
   const pos = new Float32Array(n * 3), col = new Float32Array(n * 3), size = new Float32Array(n);
   const core = [1.0, 0.78, 0.52], arm = [0.55, 0.66, 1.0], pink = [1.0, 0.45, 0.62];
   for (let i = 0; i < n; i++) {
@@ -1280,8 +1291,8 @@ function buildSun() {
 }
 
 function buildPlanet(b) {
-  const seg = isMobile ? [96, 64] : [160, 112];
-  const defines = { OCT: isMobile ? 4 : 5 };
+  const seg = lowPower ? [64, 40] : [96, 64];
+  const defines = { OCT: lowPower ? 4 : 5 };
   const group = new THREE.Group(); group.position.copy(b.pos);
   const tilt = new THREE.Group(); tilt.rotation.z = THREE.MathUtils.degToRad(b.tilt);
   group.add(tilt); scene.add(group);
@@ -1312,7 +1323,7 @@ function buildPlanet(b) {
   if (b.atm) {
     const A = b.atm, th = b.r * A.th, Ra = b.r + th, Hr = th * A.hr, Hm = th * A.hm;
     const am = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 48), new THREE.ShaderMaterial({
-      defines: { STEPS: isMobile ? 7 : 12, LSTEPS: isMobile ? 3 : 4 },
+      defines: { STEPS: lowPower ? 6 : 10, LSTEPS: lowPower ? 2 : 3 },
       vertexShader: ATMO_VS, fragmentShader: ATMO_FS,
       uniforms: {
         uCenter: { value: b.pos }, uR: { value: b.r }, uRa: { value: Ra }, uSunPos: U.sun,
@@ -1350,7 +1361,7 @@ function ringDensJS(r) {
 }
 
 function buildRingParticles(b) {
-  const n = isMobile ? 26000 : 80000;
+  const n = quality.rings;
   const aR = new Float32Array(n), aA = new Float32Array(n), aY = new Float32Array(n), aS = new Float32Array(n), aC = new Float32Array(n);
   let i = 0;
   while (i < n) {
@@ -1378,9 +1389,9 @@ function buildRingParticles(b) {
 
 function initThree() {
   try {
-    renderer = new THREE.WebGLRenderer({ canvas: $('#webgl'), antialias: !isMobile, powerPreference: 'high-performance' });
+    renderer = new THREE.WebGLRenderer({ canvas: $('#webgl'), antialias: false, powerPreference: 'high-performance' });
   } catch (e) { webglOK = false; console.warn('WebGL indisponível', e); return; }
-  const pr = Math.min(devicePixelRatio || 1, isMobile ? 1.75 : 2);
+  const pr = Math.min(devicePixelRatio || 1, quality.pixelRatio);
   U.pr.value = pr;
   renderer.setPixelRatio(pr);
   renderer.setSize(innerWidth, innerHeight);
@@ -1401,12 +1412,15 @@ function initThree() {
   composer.addPass(new OutputPass());
 }
 
-function buildScene() {
-  buildStars();
-  buildSun();
-  PLANETS.forEach(buildPlanet);
-  buildOrbits();
-  buildGalaxy();
+async function buildScene() {
+  const tasks = [buildStars, buildSun, ...PLANETS.map(b => () => buildPlanet(b)), buildOrbits, buildGalaxy];
+  for (let i = 0; i < tasks.length; i++) {
+    tasks[i]();
+    progressTo(42 + 26 * (i + 1) / tasks.length, 0.1);
+    // Devolve o controle para o navegador pintar o loader e processar eventos.
+    await nextFrame();
+    await wait(0);
+  }
 }
 
 /* =====================================================================
@@ -1582,6 +1596,7 @@ function setupScrollAnimations() {
 /* =====================================================================
    LOOP
    ===================================================================== */
+let sceneReady = false, slowFrames = 0, sampledFrames = 0;
 let sCur = 0, accentKey = '', navIdx = -1;
 const rootStyle = document.documentElement.style;
 const nowIdx = $('.now-idx'), nowName = $('.now-name'), progFill = $('.progress-fill');
@@ -1618,7 +1633,21 @@ function frame(time, deltaMs) {
     mouse.cy = lerp(mouse.cy, mouse.py, 1 - Math.pow(0.0004, dt));
     cursorEl.style.transform = `translate3d(${mouse.cx}px,${mouse.cy}px,0)`;
   }
-  if (!webglOK || !galaxy) return;
+  if (!webglOK || !sceneReady || document.hidden) return;
+
+  // Usa o tempo real do ticker (antes do limite de dt), sem reagir a uma pausa isolada.
+  if (deltaMs > 0 && deltaMs < 250 && renderer.getPixelRatio() > 0.75) {
+    sampledFrames++;
+    if (deltaMs > 28) slowFrames++;
+    if (sampledFrames >= 90) {
+      if (slowFrames > 60) {
+        const pr = Math.max(0.75, renderer.getPixelRatio() - 0.25);
+        renderer.setPixelRatio(pr); composer.setPixelRatio(pr); U.pr.value = pr;
+        document.documentElement.classList.add('low-power');
+      }
+      sampledFrames = 0; slowFrames = 0;
+    }
+  }
 
   U.time.value += dt * (reduce ? 0.15 : 1);
   planetObjs.forEach(o => {
@@ -1696,20 +1725,19 @@ function progressTo(v, dur = 0.9) {
 
 async function boot() {
   window.__solarReady = true;
-  const t0 = performance.now();
   progressTo(18);
   await Promise.race([document.fonts ? document.fonts.ready : Promise.resolve(), wait(2500)]);
   progressTo(42); await nextFrame();
   initThree();
   if (webglOK) {
-    buildScene(); progressTo(68); await nextFrame();
+    await buildScene(); progressTo(68); await nextFrame();
     measure(); cameraAt(0); camera.position.copy(camA.pos); camera.lookAt(camA.look);
-    renderer.compile(scene, camera);
+    // KHR_parallel_shader_compile evita bloquear a interface enquanto a GPU compila.
+    await renderer.compileAsync(scene, camera);
     composer.render();
+    sceneReady = true;
   }
   progressTo(90); await nextFrame();
-  const minT = reduce ? 0 : 1800;
-  await wait(Math.max(0, minT - (performance.now() - t0)));
   await progressTo(100, 0.6);
   reveal();
 }
